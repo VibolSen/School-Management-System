@@ -1,0 +1,575 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+///////////////////////////
+// Models
+/////////////////////////
+
+model User {
+  id                String              @id @default(uuid())
+  name              String?
+  email             String              @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String              // Hashed password
+  roleId            String?
+  role              RoleEnum?           @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  lastLogin         DateTime?
+  lastActivity      DateTime?           // Track last login/activity
+  lockedAt          DateTime?           // When account was locked
+  lockReason        String?             // Reason for locking
+  isLocked          Boolean             @default(false)
+  isActive          Boolean             @default(true)
+  department        String?
+  position          String?
+  contactNumber     String?
+
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  courses           Course[]            @relation("CourseInstructor")
+  enrollments       Enrollment[]
+  attendances       Attendance[]
+  leaveRequests     LeaveRequest[]
+  approvedLeaves    LeaveRequest[]      @relation("LeaveApprover")
+  taughtExams       Exam[]              @relation("ExamInstructor")
+  assignedExams     ExamAssignment[]
+  trainingTeacherCV TrainingTeacherCV?
+  materialsUploaded Material[]
+  assignments       StudentAssignment[]
+  discussions       Discussion[]
+  certificates      Certificate[]
+  libraryResources  LibraryResource[]
+  activityLogs      ActivityLog[]
+  createdAnnouncements Announcement[]
+  sentNotifications Notification[]
+  surveyResponses   SurveyResponse[]
+  createdQRCodeSessions QRCodeSession[]
+  createdOvertimeSessions OvertimeSession[]
+  systemConfigUpdates SystemConfiguration[]
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  instructor  User     @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  instructorId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  objectives  String?
+  methodology String?
+  topics      Topic[]
+
+  // Relations
+  enrollments Enrollment[]
+  materials   Material[]
+  activities  Activity[]
+  exams       Exam[]
+  competencies CourseCompetency[]
+  discussions Discussion[]
+  certificates Certificate[]
+  attendances Attendance[]
+  surveys     Survey[]
+  qrCodeSessions QRCodeSession[]
+}
+
+model Enrollment {
+  id         String           @id @default(uuid())
+  studentId  String
+  courseId   String
+  enrolledAt DateTime         @default(now())
+  statusId   String
+  progress   Float            @default(0)
+  student    User             @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  status     EnrollmentStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([studentId, courseId])
+}
+
+model Attendance {
+  id         String                @id @default(uuid())
+  userId     String
+  courseId   String?
+  overtimeSessionId String?
+  qrCodeSessionId String?
+  date       DateTime
+  checkIn    DateTime
+  checkOut   DateTime?
+  statusId   String
+  qrCode     String?
+  user       User                  @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course     Course?               @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  status     AttendanceStatusEnum  @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  overtimeSession OvertimeSession? @relation(fields: [overtimeSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  qrCodeSession QRCodeSession?     @relation(fields: [qrCodeSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model LeaveRequest {
+  id           String      @id @default(uuid())
+  userId       String
+  leaveTypeId  String
+  startDate    DateTime
+  endDate      DateTime
+  reason       String
+  statusId     String      @default("PENDING")
+  approvedById String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  user         User        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  approvedBy   User?       @relation("LeaveApprover", fields: [approvedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  leaveType    LeaveTypeEnum @relation(fields: [leaveTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  status       LeaveStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Material {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  typeId      String
+  fileUrl     String?
+  content     String?
+  courseId    String
+  uploadedById String
+  uploadedAt  DateTime     @default(now())
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  uploadedBy  User         @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  type        MaterialTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  typeId      String
+  courseId    String
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignments StudentAssignment[]
+  type        ActivityTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Exam {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  instructorId String
+  courseId     String?
+  startDate    DateTime?
+  endDate      DateTime?
+  duration     Int?
+  passingScore Float    @default(70)
+  maxAttempts  Int      @default(1)
+  isRandom     Boolean  @default(false)
+  isShuffled   Boolean  @default(false)
+  typeId       String   @default("ANYTIME")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  instructor   User     @relation("ExamInstructor", fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course       Course?  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  questions    Question[]
+  assignments  ExamAssignment[]
+  competencies ExamCompetency[]
+  certificates Certificate[]
+  type         ExamTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Question {
+  id            String      @id @default(uuid())
+  content       String
+  typeId        String
+  options       String
+  correctAnswer String
+  points        Float       @default(1)
+  examId        String
+  competencyId  String?
+  exam          Exam        @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  competency    Competency? @relation(fields: [competencyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  type          QuestionTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model ExamAssignment {
+  id         String           @id @default(uuid())
+  examId     String
+  studentId  String
+  assignedAt DateTime         @default(now())
+  statusId   String           @default("ASSIGNED")
+  attempts      Int           @default(0)
+  lastAttempt   DateTime?
+  deviceId      String?
+  ipAddress     String?
+  timeSpent     Int?
+  exam       Exam             @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  student    User             @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  status     AssignmentStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([examId, studentId])
+}
+
+model StudentAssignment {
+  id          String           @id @default(uuid())
+  activityId  String
+  studentId   String
+  submittedAt DateTime?
+  content     String?
+  fileUrl     String?
+  grade       Float?
+  feedback    String?
+  statusId    String @default("ASSIGNED")
+  activity    Activity         @relation(fields: [activityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  student     User             @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  status      AssignmentStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([activityId, studentId])
+}
+
+model Certificate {
+  id         String             @id @default(uuid())
+  studentId  String
+  examId     String?
+  courseId   String?
+  templateId String
+  issuedAt   DateTime           @default(now())
+  downloadUrl String
+  student    User               @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exam       Exam?              @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course     Course?            @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  template   CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model CertificateTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  design      String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  certificates Certificate[]
+}
+
+model Competency {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  categoryId  String
+  level       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  category            CompetencyCategory @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  questions           Question[]
+  courseCompetencies   CourseCompetency[]
+  examCompetencies     ExamCompetency[]
+}
+
+model CompetencyCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  competencies Competency[]
+}
+
+model CourseCompetency {
+  id           String     @id @default(uuid())
+  courseId     String
+  competencyId String
+  weight       Float @default(1)
+  course     Course     @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([courseId, competencyId])
+}
+
+model ExamCompetency {
+  id           String     @id @default(uuid())
+  examId       String
+  competencyId String
+  weight       Float @default(1)
+  exam       Exam       @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([examId, competencyId])
+}
+
+model TrainingTeacherCV {
+  id           String   @id @default(uuid())
+  teacherId    String   @unique
+  qualifications String
+  experience   String
+  specialties  String
+  contactInfo  String
+  fileUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  teacher      User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  eventType String
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Discussion {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  authorId  String
+  courseId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model LibraryResource {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  typeId      String
+  fileUrl     String?
+  uploadedById String
+  createdAt   DateTime @default(now())
+  uploadedBy  User @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  type        MaterialTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Configuration {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+  smtpSettings  String?
+}
+
+model Topic {
+  id        String  @id @default(uuid())
+  name      String
+  courseId  String
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+// System Configuration
+model SystemConfiguration {
+  id            String   @id @default(uuid())
+  schoolName    String
+  contactEmail  String
+  timezone      String
+  brandLogo     String?
+  address       String?
+  phone         String?
+  examSettings  String
+  gradingSettings String
+  updatedAt     DateTime @updatedAt
+  updatedBy     String
+  updater       User     @relation(fields: [updatedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+// Announcements & Notifications
+model Announcement {
+  id             String   @id @default(uuid())
+  title          String
+  content        String
+  authorId       String
+  priority       String   @default("NORMAL")
+  targetAudience String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime?
+  author         User     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Notification {
+  id           String   @id @default(uuid())
+  userId       String
+  type         String
+  title        String
+  message      String
+  isRead       Boolean  @default(false)
+  relatedId    String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+// Survey System
+model Survey {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  courseId    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  questions   SurveyQuestion[]
+  responses   SurveyResponse[]
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model SurveyQuestion {
+  id       String   @id @default(uuid())
+  surveyId String
+  question String
+  type     String
+  options  String?
+  survey   Survey   @relation(fields: [surveyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model SurveyResponse {
+  id         String   @id @default(uuid())
+  surveyId   String
+  userId     String
+  responses  String
+  submittedAt DateTime @default(now())
+  survey     Survey   @relation(fields: [surveyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user       User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+// Learning Paths
+model LearningPath {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  items       LearningPathItem[]
+}
+
+model LearningPathItem {
+  id             String   @id @default(uuid())
+  learningPathId String
+  itemType       String
+  itemId         String
+  order          Int
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+// QR Code Attendance
+model QRCodeSession {
+  id          String   @id @default(uuid())
+  courseId    String?
+  createdById String
+  qrCode      String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  attendances Attendance[]
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+// Overtime Tracking
+model OvertimeSession {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  instructorId String
+  startTime   DateTime
+  endTime     DateTime
+  createdAt   DateTime @default(now())
+  attendances Attendance[]
+  instructor  User     @relation(fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+// Enum Models
+model RoleEnum {
+  id String @id @default(uuid())
+  name String @unique
+  users User[]
+}
+
+model EnrollmentStatusEnum {
+  id String @id @default(uuid())
+  name String @unique
+  enrollments Enrollment[]
+}
+
+model AttendanceStatusEnum {
+  id String @id @default(uuid())
+  name String @unique
+  attendances Attendance[]
+}
+
+model LeaveTypeEnum {
+  id String @id @default(uuid())
+  name String @unique
+  leaveRequests LeaveRequest[]
+}
+
+model LeaveStatusEnum {
+  id String @id @default(uuid())
+  name String @unique
+  leaveRequests LeaveRequest[]
+}
+
+model MaterialTypeEnum {
+  id String @id @default(uuid())
+  name String @unique
+  materials Material[]
+  libraryResources LibraryResource[]
+}
+
+model ActivityTypeEnum {
+  id String @id @default(uuid())
+  name String @unique
+  activities Activity[]
+}
+
+model ExamTypeEnum {
+  id String @id @default(uuid())
+  name String @unique
+  exams Exam[]
+}
+
+model QuestionTypeEnum {
+  id String @id @default(uuid())
+  name String @unique
+  questions Question[]
+}
+
+model AssignmentStatusEnum {
+  id String @id @default(uuid())
+  name String @unique
+  examAssignments ExamAssignment[]
+  studentAssignments StudentAssignment[]
+}

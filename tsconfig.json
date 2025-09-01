@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "target": "ES2017"
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "components/Header.tsx",
+    "components/admin/AdministratorDashboard.jsx",
+    "components/DashboardCard.tsx",
+    "components/admin/students/StudentTable.jsx",
+    "components/admin/students/StudentManagementView.jsx",
+    "app/admin/staff/page.tsx",
+    "components/staff/StaffManagementView.jsx",
+    "components/admin/students/StaffTable.jsx",
+    "components/staff/AddStaffModal.jsx",
+    "app/admin/students/page.tsx",
+    "components/admin/students/AddStudentModal.jsx",
+    "components/HRDashboard.tsx",
+    "components/FacultyDashboard.jsx"
+  ],
+  "exclude": ["node_modules"]
+}
