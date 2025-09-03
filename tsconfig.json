@@ -40,6 +40,6 @@
     "components/admin/students/AddStudentModal.jsx",
     "components/HRDashboard.tsx",
     "components/FacultyDashboard.jsx"
-  ],
+, "app/layout.jsx", "app/page.jsx"  ],
   "exclude": ["node_modules"]
 }

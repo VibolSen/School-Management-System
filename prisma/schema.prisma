@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlserver"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -13,25 +13,23 @@ datasource db {
 /////////////////////////
 
 model User {
-  id                String              @id @default(uuid())
-  name              String?
-  email             String              @unique
-  emailVerified     DateTime?
-  image             String?
-  password          String              // Hashed password
-  roleId            String?
-  role              RoleEnum?           @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  lastLogin         DateTime?
-  lastActivity      DateTime?           // Track last login/activity
-  lockedAt          DateTime?           // When account was locked
-  lockReason        String?             // Reason for locking
-  isLocked          Boolean             @default(false)
-  isActive          Boolean             @default(true)
-  department        String?
-  position          String?
-  contactNumber     String?
+  id            String     @id @default(uuid())
+  name          String?
+  email         String     @unique
+  password      String
+  roleId        String     @default("students")       // default role
+  role          RoleEnum   @relation(fields: [roleId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  lastLogin     DateTime?
+  lastActivity  DateTime?
+  lockedAt      DateTime?
+  lockReason    String?
+  isLocked      Boolean    @default(false)
+  isActive      Boolean    @default(true)
+  department    String?
+  position      String?
+  contactNumber String?
 
   // Relations
   accounts          Account[]
