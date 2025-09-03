@@ -7,8 +7,12 @@ export async function POST(req) {
   try {
     const { email, password } = await req.json();
 
-    // Find user by email
-    const user = await prisma.user.findUnique({ where: { email } });
+    // Find user with role info
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
+    });
+
     if (!user) {
       return new Response(JSON.stringify({ error: "Invalid email or password" }), { status: 401 });
     }
@@ -19,14 +23,15 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: "Invalid email or password" }), { status: 401 });
     }
 
-    // Optional: update lastLogin
+    // Update last login
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
     });
 
-    // Return success (never send password)
+    // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
+
     return new Response(JSON.stringify({ message: "Login successful", user: userWithoutPassword }), {
       status: 200,
     });

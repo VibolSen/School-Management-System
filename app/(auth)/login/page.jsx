@@ -20,21 +20,33 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
+  
     try {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-
+  
       const data = await res.json();
-
+  
       if (!res.ok) {
         setError(data.error || "Invalid credentials");
       } else {
-        // Redirect to dashboard or homepage
-        router.push("/dashboard");
+        const userRole = data.user.roleId || data.user.role?.id;
+  
+        // Redirect based on role
+        if (userRole === "students") {
+          router.push("/students/dashboard"); 
+        } else if (userRole === "admin") {
+          router.push("/admin/dashboard"); 
+        } else if (userRole === "hr") {
+          router.push("/hr/dashboard"); 
+        } else if (userRole === "faculty") {
+          router.push("/faculty/dashboard"); 
+        } else {
+          router.push("/"); // fallback
+        }
       }
     } catch (err) {
       setError("Login failed");
@@ -42,7 +54,8 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
+  
+  
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-md rounded-md">
       <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
