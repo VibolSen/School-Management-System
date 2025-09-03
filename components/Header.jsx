@@ -9,7 +9,7 @@ export default function Header({ toggleSidebar }) {
   const [user, setUser] = useState({
     name: "Guest",
     role: "Guest",
-    image: "/profile/default.png", // fallback image in public/profile
+    image: "/illustration/default.jpg", // fallback image in public/profile
   });
 
   const router = useRouter();
@@ -48,7 +48,7 @@ export default function Header({ toggleSidebar }) {
             ? data.user.image.startsWith("/profile")
               ? data.user.image
               : `/profile/${data.user.image}`
-            : "/profile/default.png", // fallback
+            : "/illustration/default.jpg", // fallback
         });
       } catch (err) {
         console.error("Error fetching user:", err);

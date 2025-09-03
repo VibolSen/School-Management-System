@@ -60,76 +60,49 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
+      <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-6 items-center">
         {/* Left Side - Illustration */}
-        <div className="hidden lg:flex flex-col items-center justify-center text-center space-y-6">
-          <div className="relative">
-            <img
-              src="/friendly-school-illustration-with-students-learnin.jpg"
-              alt="Students learning together"
-              className="w-96 h-96 object-contain drop-shadow-2xl"
-            />
-          </div>
-          <div className="space-y-4 text-slate-700">
-            <h2 className="text-4xl font-bold text-balance">
+        <div className="hidden lg:flex flex-col items-center justify-center text-center space-y-4">
+          <div className="space-y-3 text-slate-700 w-full flex flex-col items-center">
+            <h2 className="text-3xl font-bold text-balance max-w-md">
               Welcome to Your Educational Journey!
             </h2>
-            <p className="text-xl text-slate-600 text-pretty max-w-md">
+            <p className="text-lg text-slate-600 text-pretty max-w-md">
               Join thousands of students who are already transforming their
               future through quality education.
             </p>
-            <div className="flex items-center justify-center gap-8 pt-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-indigo-600">10k+</div>
-                <div className="text-sm text-slate-500">Active Students</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-indigo-600">500+</div>
-                <div className="text-sm text-slate-500">Expert Teachers</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-indigo-600">4.9★</div>
-                <div className="text-sm text-slate-500">Rating</div>
-              </div>
-            </div>
+          </div>
+          <div className="relative flex justify-center">
+            <img
+              src="/illustration/signUp.png"
+              alt="Students learning together"
+              className="w-80 h-80 object-contain drop-shadow-2xl"
+            />
           </div>
         </div>
 
         {/* Right Side - Registration Form */}
-        <div className="w-full max-w-md mx-auto lg:mx-0">
-          {/* Header Section */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full mb-4 shadow-lg">
-              <GraduationCap className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2 text-balance">
-              Join Our Learning Community!
-            </h1>
-            <p className="text-slate-600 text-pretty">
-              Start your educational journey with us today
-            </p>
-          </div>
-
+        <div className="w-full max-w-sm mx-auto lg:mx-0">
           {/* Registration Card */}
-          <div className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl shadow-xl p-8">
+          <div className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-xl shadow-lg p-6">
             {/* Status Messages */}
             {error && (
-              <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg mb-6 text-sm">
+              <div className="bg-red-100 border border-red-200 text-red-700 px-3 py-2 rounded-md mb-4 text-xs">
                 {error}
               </div>
             )}
             {success && (
-              <div className="bg-accent/10 border border-accent/20 text-accent px-4 py-3 rounded-lg mb-6 text-sm flex items-center gap-2">
-                <Star className="w-4 h-4" />
+              <div className="bg-green-100 border border-green-200 text-green-700 px-3 py-2 rounded-md mb-4 text-xs flex items-center gap-2">
+                <Star className="w-3 h-3" />
                 {success}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-card-foreground flex items-center gap-2">
-                  <Users className="w-4 h-4 text-primary" />
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-indigo-600" />
                   Full Name
                 </label>
                 <input
@@ -139,14 +112,14 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   required
                   placeholder="Enter your full name"
-                  className="w-full bg-input border border-border px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-card-foreground placeholder:text-muted-foreground"
+                  className="w-full bg-white border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-1.5 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder:text-gray-500 text-sm"
                 />
               </div>
 
               {/* Email Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-card-foreground flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-primary" />
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
                   Email Address
                 </label>
                 <input
@@ -156,13 +129,13 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   required
                   placeholder="Enter your email address"
-                  className="w-full bg-input border border-border px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-card-foreground placeholder:text-muted-foreground"
+                  className="w-full bg-white border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-1.5 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder:text-gray-500 text-sm"
                 />
               </div>
 
               {/* Password Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-card-foreground">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-700">
                   Password
                 </label>
                 <input
@@ -172,13 +145,13 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   required
                   placeholder="Create a strong password"
-                  className="w-full bg-input border border-border px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-card-foreground placeholder:text-muted-foreground"
+                  className="w-full bg-white border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-1.5 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder:text-gray-500 text-sm"
                 />
               </div>
 
               {/* Confirm Password Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-card-foreground">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-700">
                   Confirm Password
                 </label>
                 <input
@@ -188,7 +161,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   required
                   placeholder="Confirm your password"
-                  className="w-full bg-input border border-border px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-card-foreground placeholder:text-muted-foreground"
+                  className="w-full bg-white border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-1.5 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder:text-gray-500 text-sm"
                 />
               </div>
 
@@ -196,33 +169,33 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                className={`w-full py-2.5 px-3 rounded-md font-medium transition-all duration-200 flex items-center justify-center gap-1.5 text-sm ${
                   loading
-                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 }`}
               >
                 {loading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     Creating Account...
                   </>
                 ) : (
                   <>
-                    <GraduationCap className="w-4 h-4" />
-                    Join Our Community
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    Register
                   </>
                 )}
               </button>
             </form>
 
             {/* Footer */}
-            <div className="mt-6 pt-6 border-t border-border text-center">
-              <p className="text-sm text-muted-foreground">
+            <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+              <p className="text-xs text-gray-600">
                 Already have an account?{" "}
                 <a
                   href="/login"
-                  className="text-primary hover:text-primary/80 font-medium transition-colors"
+                  className="text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
                 >
                   Sign in here
                 </a>
@@ -231,22 +204,22 @@ export default function RegisterPage() {
           </div>
 
           {/* Bottom Features - Mobile Only */}
-          <div className="mt-8 grid grid-cols-3 gap-4 text-center lg:hidden">
-            <div className="text-slate-600">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Users className="w-4 h-4 text-indigo-600" />
+          <div className="mt-6 grid grid-cols-3 gap-3 text-center lg:hidden">
+            <div className="text-gray-600">
+              <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-1.5">
+                <Users className="w-3 h-3 text-indigo-600" />
               </div>
               <p className="text-xs">Join 10k+ Students</p>
             </div>
-            <div className="text-slate-600">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <BookOpen className="w-4 h-4 text-indigo-600" />
+            <div className="text-gray-600">
+              <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-1.5">
+                <BookOpen className="w-3 h-3 text-indigo-600" />
               </div>
               <p className="text-xs">Expert Teachers</p>
             </div>
-            <div className="text-slate-600">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Star className="w-4 h-4 text-indigo-600" />
+            <div className="text-gray-600">
+              <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-1.5">
+                <Star className="w-3 h-3 text-indigo-600" />
               </div>
               <p className="text-xs">Top Rated</p>
             </div>
