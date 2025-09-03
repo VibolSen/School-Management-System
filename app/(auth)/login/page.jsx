@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -20,42 +17,42 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-  
+
     try {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-  
+
       const data = await res.json();
-  
+
       if (!res.ok) {
         setError(data.error || "Invalid credentials");
       } else {
-        const userRole = data.user.roleId || data.user.role?.id;
-  
-        // Redirect based on role
-        if (userRole === "students") {
-          router.push("/students/dashboard"); 
-        } else if (userRole === "admin") {
-          router.push("/admin/dashboard"); 
-        } else if (userRole === "hr") {
-          router.push("/hr/dashboard"); 
-        } else if (userRole === "faculty") {
-          router.push("/faculty/dashboard"); 
-        } else {
-          router.push("/"); // fallback
-        }
+        // Save JWT token (localStorage or cookie)
+        localStorage.setItem("token", data.token);
+
+        // Get role name and normalize case
+        const roleName = data.user.role?.name?.toLowerCase();
+
+        console.log("User role:", roleName); // debugging
+
+        // Role-based redirect
+        if (roleName === "students") router.push("/students/dashboard");
+        else if (roleName === "admin") router.push("/admin/dashboard");
+        else if (roleName === "hr") router.push("/hr/dashboard");
+        else if (roleName === "faculty") router.push("/faculty/dashboard");
+        else router.push("/"); // fallback
       }
     } catch (err) {
+      console.error(err);
       setError("Login failed");
     } finally {
       setLoading(false);
     }
   };
-  
-  
+
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-md rounded-md">
       <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
