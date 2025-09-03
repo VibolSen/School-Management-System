@@ -1,20 +1,17 @@
 "use client";
-import { useState, ReactNode } from "react";
+
+import { useState } from "react";
 import Header from "../../components/Header";
 import AdminSidebar from "@/components/sidebar/AdminSidebar";
 
-interface AdminLayoutProps {
-  children: ReactNode;
-}
-
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar - only passing props that AdminSidebar actually accepts */}
+      {/* Sidebar */}
       <AdminSidebar isOpen={sidebarOpen} />
 
       {/* Main content */}

@@ -27,7 +27,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "components/Header.tsx",
+    "components/Header.jsx",
     "components/admin/AdministratorDashboard.jsx",
     "components/DashboardCard.tsx",
     "components/admin/students/StudentTable.jsx",
@@ -40,6 +40,6 @@
     "components/admin/students/AddStudentModal.jsx",
     "components/HRDashboard.tsx",
     "components/FacultyDashboard.jsx"
-, "app/layout.jsx", "app/page.jsx"  ],
+, "app/layout.jsx", "app/page.jsx", "app/admin/layout.jsx"  ],
   "exclude": ["node_modules"]
 }
