@@ -123,3 +123,4 @@ export interface Submission {
   status: SubmissionStatus;
   grade: number | null; // e.g., 85
 }
+

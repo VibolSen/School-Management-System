@@ -4,9 +4,14 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
+
+// datasource db {
+//   provider = "mysql"
+//   url      = env("DATABASE_URL")
+// }
 
 ///////////////////////////
 // Models
@@ -30,6 +35,7 @@ model User {
   department    String?
   position      String?
   contactNumber String?
+  image         String?
 
   // Relations
   accounts          Account[]

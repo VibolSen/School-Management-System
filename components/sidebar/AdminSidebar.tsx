@@ -63,6 +63,11 @@ const ADMIN_NAV_ITEMS = [
     href: "/admin/dashboard",
   },
   {
+    label: "Users",
+    icon: <FiUsers className="w-5 h-5" />,
+    href: "/admin/users",
+  },
+  {
     label: "Staff",
     icon: <FiUsers className="w-5 h-5" />,
     href: "/admin/staff",

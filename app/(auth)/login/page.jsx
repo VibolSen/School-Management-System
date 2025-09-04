@@ -40,7 +40,7 @@ export default function LoginPage() {
         console.log("User role:", roleName); // debugging
 
         // Role-based redirect
-        if (roleName === "students") router.push("/students/dashboard");
+        if (roleName === "students") router.push("/student/dashboard");
         else if (roleName === "admin") router.push("/admin/dashboard");
         else if (roleName === "hr") router.push("/hr/dashboard");
         else if (roleName === "faculty") router.push("/faculty/dashboard");
