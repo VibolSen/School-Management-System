@@ -61,21 +61,26 @@ const CourseManagementView = () => {
     try {
       if (editingCourse) {
         // Update existing course
-        const res = await fetch("/api/courses", {
+        const res = await fetch(`/api/courses?id=${editingCourse.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editingCourse.id, ...courseData }),
+          body: JSON.stringify(courseData),
         });
         const updatedCourse = await res.json();
         setCourseList(
           courseList.map((c) => (c.id === updatedCourse.id ? updatedCourse : c))
         );
       } else {
-        // Add new course
+        // Add new course - you'll need to set instructorId based on your auth system
+        const courseWithInstructor = {
+          ...courseData,
+          instructorId: "S001", // Replace with actual instructor ID from your auth system
+        };
+
         const res = await fetch("/api/courses", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(courseData),
+          body: JSON.stringify(courseWithInstructor),
         });
         const newCourse = await res.json();
         setCourseList([...courseList, newCourse]);
@@ -116,7 +121,8 @@ const CourseManagementView = () => {
           <>
             <p>
               Are you sure you want to delete the course "
-              <strong>{courseToDelete?.name}</strong>"?
+              <strong>{courseToDelete?.title}</strong>"?{" "}
+              {/* Changed from 'name' to 'title' */}
             </p>
             <p className="mt-2">
               This action cannot be undone and will unenroll all students from
