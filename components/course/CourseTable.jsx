@@ -13,11 +13,18 @@ const CourseTable = ({
 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
+      // Add safe access to properties with fallback values
+      const courseTitle = course.title || "Untitled Course";
+      const courseId = course.id || "";
+      const courseDepartment = course.department || "General";
+
       const matchesSearch =
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) || // Changed from 'name' to 'title'
-        course.id.toLowerCase().includes(searchTerm.toLowerCase());
+        courseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        courseId.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesDepartment =
-        departmentFilter === "All" || course.department === departmentFilter;
+        departmentFilter === "All" || courseDepartment === departmentFilter;
+
       return matchesSearch && matchesDepartment;
     });
   }, [courses, searchTerm, departmentFilter]);
@@ -64,8 +71,7 @@ const CourseTable = ({
             <tr>
               <th scope="col" className="px-6 py-3">
                 Course Title
-              </th>{" "}
-              {/* Changed from 'Name' to 'Title' */}
+              </th>
               <th scope="col" className="px-6 py-3">
                 Course ID
               </th>
@@ -78,33 +84,39 @@ const CourseTable = ({
             </tr>
           </thead>
           <tbody>
-            {filteredCourses.map((course) => (
-              <tr
-                key={course.id}
-                className="bg-white border-b hover:bg-slate-50"
-              >
-                <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
-                  {course.title}
-                </td>{" "}
-                {/* Changed from 'name' to 'title' */}
-                <td className="px-6 py-4">{course.id}</td>
-                <td className="px-6 py-4">{course.department}</td>
-                <td className="px-6 py-4 text-center">
-                  <button
-                    onClick={() => onEditClick(course)}
-                    className="font-medium text-blue-600 hover:underline mr-4"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onDeleteClick(course)}
-                    className="font-medium text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {filteredCourses.map((course) => {
+              // Safe access to properties with fallback values
+              const courseTitle = course.title || "Untitled Course";
+              const courseId = course.id || "";
+              const courseDepartment = course.department || "General";
+
+              return (
+                <tr
+                  key={course.id}
+                  className="bg-white border-b hover:bg-slate-50"
+                >
+                  <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                    {courseTitle}
+                  </td>
+                  <td className="px-6 py-4">{courseId}</td>
+                  <td className="px-6 py-4">{courseDepartment}</td>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => onEditClick(course)}
+                      className="font-medium text-blue-600 hover:underline mr-4"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onDeleteClick(course)}
+                      className="font-medium text-red-600 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {filteredCourses.length === 0 && (
