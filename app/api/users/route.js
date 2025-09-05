@@ -2,16 +2,14 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET all users or GET by ID with query ?id=...
+// GET Users or single user
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 
   if (id) {
     const user = await prisma.user.findUnique({ where: { id } });
-    if (!user) {
-      return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
-    }
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
     return new Response(JSON.stringify(user), { status: 200, headers: { "Content-Type": "application/json" } });
   }
 
@@ -19,23 +17,28 @@ export async function GET(req) {
   return new Response(JSON.stringify(users), { status: 200, headers: { "Content-Type": "application/json" } });
 }
 
-// POST new user
+// CREATE User
 export async function POST(req) {
   const data = await req.json();
+
+  if (!data.email || !data.password) {
+    return new Response(JSON.stringify({ error: "Email and password are required" }), { status: 400 });
+  }
 
   try {
     const user = await prisma.user.create({
       data: {
-        name: data.name,
+        name: data.name || null,
         email: data.email,
         password: data.password,
-        roleId: data.roleId || "students",
-        department: data.department,
-        position: data.position,
-        contactNumber: data.contactNumber,
-        image: data.image,
+        role: { connect: { id: data.roleId || "students" } }, // default role
+        department: data.department || null,
+        position: data.position || null,
+        contactNumber: data.contactNumber || null,
+        image: data.image || null,
         enrollmentDate: data.enrollmentDate ? new Date(data.enrollmentDate) : null,
-        studentStatusId: data.studentStatusId,
+        studentStatus: data.studentStatusId ? { connect: { id: data.studentStatusId } } : undefined,
+        isActive: true,
       },
     });
 
@@ -45,7 +48,7 @@ export async function POST(req) {
   }
 }
 
-// PUT (update user by ?id=)
+// UPDATE User
 export async function PUT(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
@@ -54,21 +57,38 @@ export async function PUT(req) {
   const data = await req.json();
 
   try {
+    const updatePayload = { ...data, updatedAt: new Date() };
+
+    // Convert roleId to relation connect if provided
+    if (data.roleId) {
+      updatePayload.role = { connect: { id: data.roleId } };
+      delete updatePayload.roleId; // <-- Remove roleId to avoid conflict
+    }
+
+    if (data.studentStatusId) {
+      updatePayload.studentStatus = { connect: { id: data.studentStatusId } };
+      delete updatePayload.studentStatusId;
+    }
+
+    // Remove empty password
+    if (!data.password) delete updatePayload.password;
+
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: {
-        ...data,
-        updatedAt: new Date(),
-      },
+      data: updatePayload,
     });
 
-    return new Response(JSON.stringify(updatedUser), { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(updatedUser), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 400 });
   }
 }
 
-// DELETE user by ?id=
+
+// DELETE User
 export async function DELETE(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
