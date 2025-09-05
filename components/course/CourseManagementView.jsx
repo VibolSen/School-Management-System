@@ -17,7 +17,13 @@ const CourseManagementView = () => {
       try {
         const res = await fetch("/api/courses");
         const data = await res.json();
-        setCourseList(data);
+        // Ensure all courses have the required fields
+        const formattedCourses = data.map((course) => ({
+          ...course,
+          title: course.title || "Untitled Course", // Ensure title exists
+          department: course.department || "General", // Ensure department exists
+        }));
+        setCourseList(formattedCourses);
       } catch (err) {
         console.error("Failed to fetch courses:", err);
       }
@@ -66,12 +72,25 @@ const CourseManagementView = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(courseData),
         });
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
         const updatedCourse = await res.json();
         setCourseList(
-          courseList.map((c) => (c.id === updatedCourse.id ? updatedCourse : c))
+          courseList.map((c) =>
+            c.id === updatedCourse.id
+              ? {
+                  ...updatedCourse,
+                  title: updatedCourse.title || "Untitled Course",
+                  department: updatedCourse.department || "General",
+                }
+              : c
+          )
         );
       } else {
-        // Add new course - you'll need to set instructorId based on your auth system
+        // Add new course
         const courseWithInstructor = {
           ...courseData,
           instructorId: "S001", // Replace with actual instructor ID from your auth system
@@ -82,8 +101,20 @@ const CourseManagementView = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(courseWithInstructor),
         });
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
         const newCourse = await res.json();
-        setCourseList([...courseList, newCourse]);
+        setCourseList([
+          ...courseList,
+          {
+            ...newCourse,
+            title: newCourse.title || "Untitled Course",
+            department: newCourse.department || "General",
+          },
+        ]);
       }
       handleCloseModal();
     } catch (err) {
@@ -121,8 +152,7 @@ const CourseManagementView = () => {
           <>
             <p>
               Are you sure you want to delete the course "
-              <strong>{courseToDelete?.title}</strong>"?{" "}
-              {/* Changed from 'name' to 'title' */}
+              <strong>{courseToDelete?.title}</strong>"?
             </p>
             <p className="mt-2">
               This action cannot be undone and will unenroll all students from

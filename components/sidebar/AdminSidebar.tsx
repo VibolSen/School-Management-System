@@ -78,6 +78,11 @@ const ADMIN_NAV_ITEMS = [
     href: "/admin/students",
   },
   {
+    label: "Departments",
+    icon: <FiUsers className="w-5 h-5" />,
+    href: "/admin/departments",
+  },
+  {
     label: "Courses",
     icon: <FiBook className="w-5 h-5" />,
     href: "/admin/courses",
