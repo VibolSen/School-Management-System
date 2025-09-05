@@ -16,7 +16,16 @@ export async function GET(request) {
 
     const users = await prisma.user.findMany({
       where,
-      include: { role: true },
+      include: {
+        role: true,
+        studentStatus: true, // Include the overall student status
+        enrollments: {
+          include: {
+            course: true,
+            status: true, // Include enrollment status for each course
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -31,6 +40,18 @@ export async function GET(request) {
       department: user.department,
       position: user.position,
       contactNumber: user.contactNumber,
+      // Student-specific fields
+      enrollmentDate: user.enrollmentDate,
+      status: user.studentStatus?.name || "N/A", // Overall student status
+      studentStatusId: user.studentStatusId,
+      courses: user.enrollments.map((e) => ({
+        id: e.course.id,
+        name: e.course.title,
+        enrollmentStatus: e.status.name,
+        enrollmentStatusId: e.status.id,
+        enrolledAt: e.enrolledAt,
+        progress: e.progress,
+      })),
     }));
 
     return NextResponse.json(formattedUsers);
@@ -55,6 +76,10 @@ export async function POST(request) {
       department,
       position,
       contactNumber,
+      // Student-specific fields
+      enrollmentDate,
+      studentStatusId,
+      courseIds = [], // Array of course IDs
     } = body;
 
     // Validate required fields
@@ -68,6 +93,23 @@ export async function POST(request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Default to 'Enrolled' status for new enrollments if not specified
+    const defaultEnrollmentStatus = await prisma.enrollmentStatusEnum.findFirst(
+      {
+        where: { name: "Enrolled" },
+      }
+    );
+
+    if (!defaultEnrollmentStatus) {
+      return NextResponse.json(
+        {
+          error:
+            "Default 'Enrolled' status not found. Please seed your database.",
+        },
+        { status: 500 }
+      );
+    }
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -78,6 +120,19 @@ export async function POST(request) {
         position,
         contactNumber,
         isActive: true,
+        enrollmentDate: enrollmentDate ? new Date(enrollmentDate) : null,
+        studentStatusId: studentStatusId || defaultEnrollmentStatus.id, // Set overall student status
+        enrollments: {
+          create: courseIds.map((courseId) => ({
+            courseId: courseId,
+            statusId: defaultEnrollmentStatus.id, // Default enrollment status for each course
+            enrolledAt: new Date(),
+          })),
+        },
+      },
+      include: {
+        enrollments: true,
+        studentStatus: true,
       },
     });
 

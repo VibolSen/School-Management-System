@@ -8,11 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// datasource db {
-//   provider = "mysql"
-//   url      = env("DATABASE_URL")
-// }
-
 ///////////////////////////
 // Models
 /////////////////////////
@@ -22,7 +17,7 @@ model User {
   name          String?
   email         String     @unique
   password      String
-  roleId        String     @default("students")       // default role
+  roleId        String     @default("students")
   role          RoleEnum   @relation(fields: [roleId], references: [id])
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -36,6 +31,8 @@ model User {
   position      String?
   contactNumber String?
   image         String?
+  enrollmentDate DateTime? // Add this for overall student enrollment date
+  studentStatusId String?   // Add this for overall student status
 
   // Relations
   accounts          Account[]
@@ -60,6 +57,7 @@ model User {
   createdQRCodeSessions QRCodeSession[]
   createdOvertimeSessions OvertimeSession[]
   systemConfigUpdates SystemConfiguration[]
+  studentStatus     EnrollmentStatusEnum? @relation("OverallStudentStatus", fields: [studentStatusId], references: [id]) // Relation for overall student status
 }
 
 model Account {
@@ -526,6 +524,7 @@ model EnrollmentStatusEnum {
   id String @id @default(uuid())
   name String @unique
   enrollments Enrollment[]
+  overallStudentStatusUsers User[] @relation("OverallStudentStatus")
 }
 
 model AttendanceStatusEnum {
