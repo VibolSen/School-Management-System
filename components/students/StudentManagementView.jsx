@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // <--- ADD THIS LINE
 import AddStudentModal from "./AddStudentModal";
 
 // Simple alert-based notification system
@@ -18,30 +18,62 @@ export default function StudentManagementView() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [roles, setRoles] = useState([]); // State to store roles
+  const [studentStatuses, setStudentStatuses] = useState([]); // State to store student statuses
+  const [courses, setCourses] = useState([]); // State to store courses
 
-  // Fetch only users with role "student"
-  const fetchStudents = useCallback(async () => {
+  // Fetch all necessary data
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/admin/users?role=student");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Fetch students
+      const studentsResponse = await fetch("/api/admin/users?role=student");
+      if (!studentsResponse.ok) {
+        throw new Error(`HTTP error! status: ${studentsResponse.status}`);
       }
-      const data = await response.json();
-      setStudents(data);
+      const studentsData = await studentsResponse.json();
+      setStudents(studentsData);
+
+      // Fetch roles (if needed for selection in modal, though 'student' is hardcoded here)
+      const rolesResponse = await fetch("/api/admin/roles"); // Assuming an API endpoint for roles
+      if (!rolesResponse.ok) {
+        throw new Error(`HTTP error! status: ${rolesResponse.status}`);
+      }
+      const rolesData = await rolesResponse.json();
+      setRoles(rolesData);
+
+      // Fetch student statuses
+      const studentStatusesResponse = await fetch(
+        "/api/admin/student-statuses"
+      ); // Assuming an API endpoint for student statuses
+      if (!studentStatusesResponse.ok) {
+        throw new Error(
+          `HTTP error! status: ${studentStatusesResponse.status}`
+        );
+      }
+      const studentStatusesData = await studentStatusesResponse.json();
+      setStudentStatuses(studentStatusesData);
+
+      // Fetch courses
+      const coursesResponse = await fetch("/api/admin/courses"); // Assuming an API endpoint for courses
+      if (!coursesResponse.ok) {
+        throw new Error(`HTTP error! status: ${coursesResponse.status}`);
+      }
+      const coursesData = await coursesResponse.json();
+      setCourses(coursesData);
     } catch (err) {
-      console.error("Failed to fetch students:", err);
-      setError("Failed to load student data.");
-      showMessage("Failed to load student data.", "error");
+      console.error("Failed to fetch data:", err);
+      setError("Failed to load data.");
+      showMessage("Failed to load data.", "error");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+    fetchData();
+  }, [fetchData]);
 
   const handleAddClick = () => {
     setEditingStudent(null);
@@ -85,17 +117,44 @@ export default function StudentManagementView() {
   const handleSaveStudent = async (studentData) => {
     try {
       let response;
+      // Find the student role ID
+      const studentRole = roles.find((role) => role.name === "student");
+      if (!studentRole) {
+        throw new Error(
+          "Student role not found. Please ensure it exists in your database."
+        );
+      }
+
+      // Find the ID for the selected student status
+      const selectedStatus = studentStatuses.find(
+        (status) => status.name === studentData.status
+      );
+      if (!selectedStatus) {
+        throw new Error(`Student status '${studentData.status}' not found.`);
+      }
+
+      // Prepare data for API
+      const apiData = {
+        ...studentData,
+        roleId: studentRole.id, // Assign the actual UUID for the 'student' role
+        studentStatusId: selectedStatus.id, // Assign the actual UUID for the student status
+        courseIds: studentData.courseIds, // Send only course IDs, already correctly named from modal
+      };
+
+      // Remove the 'status' property that was for local use in the modal
+      delete apiData.status;
+
       if (editingStudent) {
         response = await fetch(`/api/admin/users/${editingStudent.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(studentData),
+          body: JSON.stringify(apiData),
         });
       } else {
         response = await fetch("/api/admin/users", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...studentData, roleId: "student" }), // default role "student"
+          body: JSON.stringify(apiData),
         });
       }
 
@@ -109,7 +168,7 @@ export default function StudentManagementView() {
       showMessage(
         `Student ${editingStudent ? "updated" : "added"} successfully!`
       );
-      fetchStudents();
+      fetchData(); // Refresh data after save
     } catch (err) {
       console.error("Failed to save student:", err);
       showMessage(`Failed to save student: ${err.message}`, "error");
@@ -131,7 +190,7 @@ export default function StudentManagementView() {
       <div className="text-center py-10 text-red-600">
         <p className="text-xl">{error}</p>
         <button
-          onClick={fetchStudents}
+          onClick={fetchData} // Call fetchData to retry all fetches
           className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Retry
@@ -165,7 +224,7 @@ export default function StudentManagementView() {
                 Email
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
+                Overall Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created
@@ -187,12 +246,17 @@ export default function StudentManagementView() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      student.isActive
+                      // Display the overall student status
+                      student.status === "Enrolled"
+                        ? "bg-blue-100 text-blue-800"
+                        : student.status === "Graduated"
                         ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
+                        : student.status === "Withdrawn"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {student.isActive ? "Active" : "Inactive"}
+                    {student.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -228,8 +292,10 @@ export default function StudentManagementView() {
         <AddStudentModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
-          onSave={handleSaveStudent}
+          onSaveStudent={handleSaveStudent}
           studentToEdit={editingStudent}
+          allCourses={courses}
+          allStudentStatuses={studentStatuses}
         />
       )}
     </div>
