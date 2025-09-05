@@ -59,18 +59,27 @@ export async function PUT(req) {
   try {
     const updatePayload = { ...data, updatedAt: new Date() };
 
-    // Convert roleId to relation connect if provided
+    // Handle role update safely
     if (data.roleId) {
+      // Only connect if the role exists in DB
+      const roleExists = await prisma.roleEnum.findUnique({ where: { id: data.roleId } });
+      if (!roleExists) {
+        return new Response(
+          JSON.stringify({ error: `Role '${data.roleId}' does not exist in DB` }),
+          { status: 400 }
+        );
+      }
       updatePayload.role = { connect: { id: data.roleId } };
-      delete updatePayload.roleId; // <-- Remove roleId to avoid conflict
+      delete updatePayload.roleId;
     }
 
+    // Handle studentStatus relation
     if (data.studentStatusId) {
       updatePayload.studentStatus = { connect: { id: data.studentStatusId } };
       delete updatePayload.studentStatusId;
     }
 
-    // Remove empty password
+    // Remove empty password to avoid overwriting
     if (!data.password) delete updatePayload.password;
 
     const updatedUser = await prisma.user.update({

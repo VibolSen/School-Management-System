@@ -37,7 +37,8 @@ export default function UserManagementView() {
   const fetchRoles = useCallback(() => {
     const mockRoles = [
       { id: "admin", name: "Admin" },
-      { id: "staff", name: "Staff" },
+      { id : "faculty", name: "Faculty" },
+      { id: "hr", name: "Hr" },
       { id: "students", name: "Student" },
     ];
     setRoles(mockRoles);
