@@ -1,20 +1,24 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
-import StaffTable from "./StaffTable";
-import AddStaffModal from "./AddStaffModal";
+import React, { useState, useEffect, useCallback } from 'react';
+import StaffTable from './StaffTable';
+import AddStaffModal from './AddStaffModal';
 
-// Simple alert-based notification system
-const showMessage = (message, type = "success") => {
-  if (type === "success") {
-    alert(`✅ ${message}`);
-  } else {
-    alert(`❌ ${message}`);
-  }
+// Staff roles (exclude students)
+const STAFF_ROLES = [
+  { id: 'admin', name: 'Admin' },
+  { id: 'faculty', name: 'Faculty' },
+  { id: 'hr', name: 'HR' },
+];
+
+// Simple alert notification
+const showMessage = (message, type = 'success') => {
+  alert(type === 'success' ? `✅ ${message}` : `❌ ${message}`);
 };
 
 export default function StaffManagementView() {
   const [staffList, setStaffList] = useState([]);
+  const [roles, setRoles] = useState(STAFF_ROLES);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,16 +28,15 @@ export default function StaffManagementView() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/admin/staff");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setStaffList(data);
+      const res = await fetch('/api/users');
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+      const staffOnly = data.filter(user => user.roleId !== 'students');
+      setStaffList(staffOnly);
     } catch (err) {
-      console.error("Failed to fetch staff:", err);
-      setError("Failed to load staff data.");
-      showMessage("Failed to load staff data.", "error");
+      console.error(err);
+      setError('Failed to load staff data.');
+      showMessage('Failed to load staff data.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -48,33 +51,25 @@ export default function StaffManagementView() {
     setIsModalOpen(true);
   };
 
-  const handleEditClick = (staffMember) => {
-    setEditingStaff(staffMember);
+  const handleEditClick = (staff) => {
+    setEditingStaff(staff);
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (staffId) => {
-    if (!window.confirm("Are you sure you want to delete this staff member?")) {
-      return;
-    }
+  const handleDeleteClick = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this staff member?')) return;
 
     try {
-      const response = await fetch(`/api/admin/staff/${staffId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
+      const res = await fetch(`/api/users?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || `HTTP error ${res.status}`);
       }
-
-      setStaffList((prevList) => prevList.filter((s) => s.id !== staffId));
-      showMessage("Staff member deleted successfully!");
+      setStaffList(prev => prev.filter(s => s.id !== id));
+      showMessage('Staff member deleted successfully!');
     } catch (err) {
-      console.error("Failed to delete staff:", err);
-      showMessage(`Failed to delete staff: ${err.message}`, "error");
+      console.error(err);
+      showMessage(`Failed to delete staff: ${err.message}`, 'error');
     }
   };
 
@@ -85,84 +80,78 @@ export default function StaffManagementView() {
 
   const handleSaveStaff = async (staffData) => {
     try {
-      let response;
+      const dataToUpdate = {
+        name: staffData.name,
+        email: staffData.email,
+        contactNumber: staffData.contactNumber,
+        department: staffData.department,
+        isActive: staffData.isActive,
+        role: { connect: { id: staffData.roleId } },
+        // hireDate removed
+      };
+  
+      let res;
       if (editingStaff) {
-        response = await fetch(`/api/admin/staff/${editingStaff.id}`, {
+        res = await fetch(`/api/users?id=${editingStaff.id}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(staffData),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataToUpdate),
         });
       } else {
-        response = await fetch("/api/admin/staff", {
+        // For new staff, also include password
+        dataToUpdate["password"] = staffData.password;
+        res = await fetch("/api/users", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(staffData),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataToUpdate),
         });
       }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
+  
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || `HTTP error ${res.status}`);
       }
-
-      showMessage(
-        `Staff member ${editingStaff ? "updated" : "added"} successfully!`
-      );
+  
+      showMessage(`Staff member ${editingStaff ? "updated" : "added"} successfully!`);
       fetchStaff();
     } catch (err) {
-      console.error("Failed to save staff:", err);
+      console.error(err);
       showMessage(`Failed to save staff: ${err.message}`, "error");
     } finally {
       handleCloseModal();
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-xl text-slate-600">Loading staff data...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-10 text-red-600">
-        <p className="text-xl">{error}</p>
-        <button
-          onClick={fetchStaff}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+  
+  if (isLoading) return <p className="text-center py-10">Loading staff...</p>;
+  if (error) return <p className="text-center py-10 text-red-600">{error}</p>;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-slate-800">Staff Management</h1>
-      <p className="text-slate-500">
-        View, edit, and manage all staff members in the system.
-      </p>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-slate-800">Staff Management</h1>
+        <button
+          onClick={handleAddClick}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Add Staff
+        </button>
+      </div>
+
       <StaffTable
-        staff={staffList}
-        onAddStaffClick={handleAddClick}
+        staffList={staffList}
         onEditClick={handleEditClick}
         onDeleteClick={handleDeleteClick}
       />
-      <AddStaffModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSaveStaff={handleSaveStaff}
-        staffToEdit={editingStaff}
-      />
+
+      {isModalOpen && (
+        <AddStaffModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSaveStaff}
+          staffToEdit={editingStaff}
+          roles={roles}
+        />
+      )}
     </div>
   );
 }

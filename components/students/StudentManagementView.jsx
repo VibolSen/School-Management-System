@@ -1,67 +1,58 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react"; // <--- ADD THIS LINE
+import React, { useState, useEffect, useCallback } from "react";
 import AddStudentModal from "./AddStudentModal";
+import StudentTable from "./StudentTable";
 
-// Simple alert-based notification system
 const showMessage = (message, type = "success") => {
-  if (type === "success") {
-    alert(`✅ ${message}`);
-  } else {
-    alert(`❌ ${message}`);
-  }
+  alert(type === "success" ? `✅ ${message}` : `❌ ${message}`);
 };
 
 export default function StudentManagementView() {
   const [students, setStudents] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [studentStatuses, setStudentStatuses] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [roles, setRoles] = useState([]); // State to store roles
-  const [studentStatuses, setStudentStatuses] = useState([]); // State to store student statuses
-  const [courses, setCourses] = useState([]); // State to store courses
 
-  // Fetch all necessary data
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Fetch students
-      const studentsResponse = await fetch("/api/users");
-      if (!studentsResponse.ok) {
-        throw new Error(`HTTP error! status: ${studentsResponse.status}`);
-      }
-      const studentsData = await studentsResponse.json();
-      setStudents(studentsData);
+      // 1. Fetch all users
+      const resUsers = await fetch("/api/users");
+      if (!resUsers.ok) throw new Error(`HTTP error! status: ${resUsers.status}`);
+      const users = await resUsers.json();
 
-      // Fetch roles (if needed for selection in modal, though 'student' is hardcoded here)
-      const rolesResponse = await fetch("/api/admin/roles"); // Assuming an API endpoint for roles
-      if (!rolesResponse.ok) {
-        throw new Error(`HTTP error! status: ${rolesResponse.status}`);
-      }
-      const rolesData = await rolesResponse.json();
+      // 2. Fetch roles
+      const resRoles = await fetch("/api/admin/roles");
+      if (!resRoles.ok) throw new Error(`HTTP error! status: ${resRoles.status}`);
+      const rolesData = await resRoles.json();
       setRoles(rolesData);
 
-      // Fetch student statuses
-      const studentStatusesResponse = await fetch(
-        "/api/admin/student-statuses"
-      ); // Assuming an API endpoint for student statuses
-      if (!studentStatusesResponse.ok) {
-        throw new Error(
-          `HTTP error! status: ${studentStatusesResponse.status}`
-        );
-      }
-      const studentStatusesData = await studentStatusesResponse.json();
-      setStudentStatuses(studentStatusesData);
+      // 3. Fetch student statuses
+      const resStatuses = await fetch("/api/admin/student-statuses");
+      if (!resStatuses.ok) throw new Error(`HTTP error! status: ${resStatuses.status}`);
+      setStudentStatuses(await resStatuses.json());
 
-      // Fetch courses
-      const coursesResponse = await fetch("/api/admin/courses"); // Assuming an API endpoint for courses
-      if (!coursesResponse.ok) {
-        throw new Error(`HTTP error! status: ${coursesResponse.status}`);
-      }
-      const coursesData = await coursesResponse.json();
-      setCourses(coursesData);
+      // 4. Fetch courses
+      const resCourses = await fetch("/api/admin/courses");
+      if (!resCourses.ok) throw new Error(`HTTP error! status: ${resCourses.status}`);
+      setCourses(await resCourses.json());
+
+      // 5. Filter students and attach role object
+      const studentsOnly = users
+        .filter(user => user.roleId === "students") // or your student role ID
+        .map(user => {
+          const role = rolesData.find(r => r.id === user.roleId) || { name: "N/A" };
+          return { ...user, role };
+        });
+
+      setStudents(studentsOnly);
+
     } catch (err) {
       console.error("Failed to fetch data:", err);
       setError("Failed to load data.");
@@ -86,28 +77,22 @@ export default function StudentManagementView() {
   };
 
   const handleDeleteClick = async (studentId) => {
-    if (!window.confirm("Are you sure you want to delete this student?"))
-      return;
-
+    if (!window.confirm("Are you sure you want to delete this student?")) return;
+  
     try {
-      const response = await fetch(`/api/admin/users/${studentId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`
-        );
+      const res = await fetch(`/api/users?id=${studentId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || `HTTP error! status: ${res.status}`);
       }
-
-      setStudents((prev) => prev.filter((s) => s.id !== studentId));
+      setStudents(prev => prev.filter(s => s.id !== studentId));
       showMessage("Student deleted successfully!");
     } catch (err) {
       console.error("Failed to delete student:", err);
       showMessage(`Failed to delete student: ${err.message}`, "error");
     }
   };
+  
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -116,59 +101,56 @@ export default function StudentManagementView() {
 
   const handleSaveStudent = async (studentData) => {
     try {
-      let response;
-      // Find the student role ID
-      const studentRole = roles.find((role) => role.name === "student");
-      if (!studentRole) {
-        throw new Error(
-          "Student role not found. Please ensure it exists in your database."
-        );
-      }
-
-      // Find the ID for the selected student status
-      const selectedStatus = studentStatuses.find(
-        (status) => status.name === studentData.status
-      );
-      if (!selectedStatus) {
-        throw new Error(`Student status '${studentData.status}' not found.`);
-      }
-
-      // Prepare data for API
+      // Build payload carefully
       const apiData = {
-        ...studentData,
-        roleId: studentRole.id, // Assign the actual UUID for the 'student' role
-        studentStatusId: selectedStatus.id, // Assign the actual UUID for the student status
-        courseIds: studentData.courseIds, // Send only course IDs, already correctly named from modal
+        name: studentData.name,
+        email: studentData.email,
       };
-
-      // Remove the 'status' property that was for local use in the modal
-      delete apiData.status;
-
+  
+      if (!editingStudent && studentData.password) {
+        apiData.password = studentData.password;
+      }
+  
+      if (studentData.roleId) {
+        apiData.roleId = studentData.roleId; // "students"
+      }
+  
+      if (studentData.studentStatusId) {
+        apiData.studentStatusId = studentData.studentStatusId;
+      }
+  
+      // Only send courseIds if they exist
+      if (studentData.courseIds?.length) {
+        apiData.courseIds = studentData.courseIds;
+      }
+  
+      let res;
       if (editingStudent) {
-        response = await fetch(`/api/admin/users/${editingStudent.id}`, {
+        res = await fetch(`/api/users?id=${editingStudent.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(apiData),
         });
       } else {
-        response = await fetch("/api/admin/users", {
+        res = await fetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(apiData),
         });
       }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`
-        );
+  
+      const contentType = res.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        throw new Error(`Expected JSON, but got ${res.status} ${res.statusText}`);
       }
-
-      showMessage(
-        `Student ${editingStudent ? "updated" : "added"} successfully!`
-      );
-      fetchData(); // Refresh data after save
+  
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  
+      showMessage(`Student ${editingStudent ? "updated" : "added"} successfully!`);
+      fetchData();
     } catch (err) {
       console.error("Failed to save student:", err);
       showMessage(`Failed to save student: ${err.message}`, "error");
@@ -176,117 +158,34 @@ export default function StudentManagementView() {
       handleCloseModal();
     }
   };
+  
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-xl text-slate-600">Loading student data...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-10 text-red-600">
-        <p className="text-xl">{error}</p>
-        <button
-          onClick={fetchData} // Call fetchData to retry all fetches
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+  if (isLoading) return <p className="text-center py-10">Loading student data...</p>;
+  if (error) return (
+    <div className="text-center py-10 text-red-600">
+      <p>{error}</p>
+      <button onClick={fetchData} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        Retry
+      </button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-800">
-          Student Management
-        </h1>
-        <button
-          onClick={handleAddClick}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
+        <h1 className="text-3xl font-bold text-slate-800">Student Management</h1>
+        <button onClick={handleAddClick} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
           Add New Student
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Overall Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {students.map((student) => (
-              <tr key={student.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {student.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {student.email}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      // Display the overall student status
-                      student.status === "Enrolled"
-                        ? "bg-blue-100 text-blue-800"
-                        : student.status === "Graduated"
-                        ? "bg-green-100 text-green-800"
-                        : student.status === "Withdrawn"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {student.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(student.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                  <button
-                    onClick={() => handleEditClick(student)}
-                    className="text-indigo-600 hover:text-indigo-900"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(student.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {students.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No students found.</p>
-          </div>
-        )}
-      </div>
+      <StudentTable
+        students={students}
+        allCourses={courses}
+        onAddStudentClick={handleAddClick}
+        onEditClick={handleEditClick}
+        onDeleteClick={handleDeleteClick}
+      />
 
       {isModalOpen && (
         <AddStudentModal

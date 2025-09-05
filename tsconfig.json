@@ -36,7 +36,7 @@
     "components/staff/StaffManagementView.jsx",
     "components/admin/students/StaffTable.jsx",
     "components/staff/AddStaffModal.jsx",
-    "app/admin/students/page.tsx",
+    "app/admin/students/page.jsx",
     "components/admin/students/AddStudentModal.jsx",
     "components/HRDashboard.tsx",
     "components/FacultyDashboard.jsx"

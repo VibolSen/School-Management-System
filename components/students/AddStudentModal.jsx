@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-// import { MOCK_COURSES } from '@/lib/constants'; // Remove this line
 
 const initialFormState = {
   name: "",
   email: "",
   enrollmentDate: "",
-  status: "Enrolled", // This will be the name of the status, convert to ID on save
-  password: "", // Add password field for new students
+  password: "",       // Only for new students
+  isActive: true,     // Active/Inactive status
 };
 
 const AddStudentModal = ({
@@ -17,7 +16,6 @@ const AddStudentModal = ({
   onSaveStudent,
   studentToEdit,
   allCourses = [],
-  allStudentStatuses = [],
 }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [selectedCourseIds, setSelectedCourseIds] = useState([]);
@@ -34,11 +32,11 @@ const AddStudentModal = ({
         setFormData({
           name: studentToEdit.name,
           email: studentToEdit.email,
-          enrollmentDate: studentToEdit.enrollmentDate, // This is already correctly formatted as "YYYY-MM-DD" from API
-          status: studentToEdit.status, // This is the name, e.g., "Enrolled"
-          password: "", // Do not pre-fill password in edit mode
+          enrollmentDate: studentToEdit.enrollmentDate,
+          password: "",
+          isActive: studentToEdit.isActive ?? true,
         });
-        setSelectedCourseIds(studentToEdit.courses.map((c) => c.id));
+        setSelectedCourseIds(studentToEdit.courses?.map((c) => c.id) || []);
       } else {
         setFormData(initialFormState);
         setSelectedCourseIds([]);
@@ -75,6 +73,7 @@ const AddStudentModal = ({
       newErrors.enrollmentDate = "Enrollment date is required.";
     if (!isEditMode && !formData.password.trim())
       newErrors.password = "Password is required for new students.";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -89,13 +88,12 @@ const AddStudentModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validate()) {
-      // Pass the selected course IDs and status name to the parent component
-      onSaveStudent({
-        ...formData,
-        courseIds: selectedCourseIds, // Send only IDs
-      });
-    }
+    if (!validate()) return;
+
+    onSaveStudent({
+      ...formData,
+      courseIds: selectedCourseIds,
+    });
   };
 
   const handleChange = (e) => {
@@ -103,8 +101,8 @@ const AddStudentModal = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const filteredCourses = allCourses.filter(
-    (course) => course.title.toLowerCase().includes(searchTerm.toLowerCase()) // Use course.title
+  const filteredCourses = allCourses.filter((course) =>
+    course.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (!isOpen) return null;
@@ -148,127 +146,96 @@ const AddStudentModal = ({
         </div>
         <form onSubmit={handleSubmit} noValidate>
           <div className="p-6 grid grid-cols-1 gap-y-4">
+            {/* Name */}
             <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Full Name
               </label>
               <input
                 type="text"
-                id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  errors.name
-                    ? "border-red-500 ring-1 ring-red-500"
-                    : "border-slate-300"
+                  errors.name ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
                 } focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                required
               />
-              {errors.name && (
-                <p className="text-xs text-red-500 mt-1">{errors.name}</p>
-              )}
+              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
             </div>
+
+            {/* Email */}
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Email Address
               </label>
               <input
                 type="email"
-                id="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  errors.email
-                    ? "border-red-500 ring-1 ring-red-500"
-                    : "border-slate-300"
+                  errors.email ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
                 } focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                required
               />
-              {errors.email && (
-                <p className="text-xs text-red-500 mt-1">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
             </div>
-            {!isEditMode && ( // Only show password field for new students
+
+            {/* Password */}
+            {!isEditMode && (
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Password
                 </label>
                 <input
                   type="password"
-                  id="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   className={`w-full px-3 py-2 border rounded-md text-sm ${
-                    errors.password
-                      ? "border-red-500 ring-1 ring-red-500"
-                      : "border-slate-300"
+                    errors.password ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
                   } focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                  required={!isEditMode}
                 />
-                {errors.password && (
-                  <p className="text-xs text-red-500 mt-1">{errors.password}</p>
-                )}
+                {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
               </div>
             )}
+
+            {/* Enrollment Date */}
             <div>
-              <label
-                htmlFor="enrollmentDate"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Enrollment Date
               </label>
               <input
-                type="date"
-                id="enrollmentDate"
-                name="enrollmentDate"
-                value={formData.enrollmentDate}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  errors.enrollmentDate
-                    ? "border-red-500 ring-1 ring-red-500"
-                    : "border-slate-300"
-                } focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                required
-              />
-              {errors.enrollmentDate && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.enrollmentDate}
-                </p>
-              )}
+  type="date"
+  name="enrollmentDate"
+  value={formData.enrollmentDate || ""}
+  onChange={handleChange}
+  className={`w-full px-3 py-2 border rounded-md text-sm ${
+    errors.enrollmentDate ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+  } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+/>
+
+              {errors.enrollmentDate && <p className="text-xs text-red-500 mt-1">{errors.enrollmentDate}</p>}
             </div>
+
+            {/* Active Status */}
             <div>
-              <label
-                htmlFor="status"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
-                Overall Student Status
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Active Status
               </label>
               <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
+                name="isActive"
+                value={formData.isActive ? "true" : "false"}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))
+                }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
               >
-                {allStudentStatuses.map((status) => (
-                  <option key={status.id} value={status.name}>
-                    {status.name}
-                  </option>
-                ))}
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
               </select>
             </div>
+
+            {/* Courses */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Course Enrollment
@@ -290,12 +257,12 @@ const AddStudentModal = ({
                             key={course.id}
                             className="flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full"
                           >
-                            {course.title} {/* Use course.title here */}
+                            {course.title}
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleCourseChange(course.id);
+                                setSelectedCourseIds(selectedCourseIds.filter(id => id !== course.id));
                               }}
                               className="text-blue-600 hover:text-blue-800 focus:outline-none"
                             >
@@ -306,6 +273,7 @@ const AddStudentModal = ({
                     )}
                   </div>
                 </button>
+
                 {isDropdownOpen && (
                   <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
                     <div className="p-2">
@@ -324,18 +292,19 @@ const AddStudentModal = ({
                             <input
                               type="checkbox"
                               checked={selectedCourseIds.includes(course.id)}
-                              onChange={() => handleCourseChange(course.id)}
+                              onChange={() =>
+                                setSelectedCourseIds(selectedCourseIds.includes(course.id)
+                                  ? selectedCourseIds.filter(id => id !== course.id)
+                                  : [...selectedCourseIds, course.id])
+                              }
                               className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                             />
-                            <span className="ml-3">{course.title}</span>{" "}
-                            {/* Use course.title here */}
+                            <span className="ml-3">{course.title}</span>
                           </label>
                         </li>
                       ))}
                       {filteredCourses.length === 0 && (
-                        <p className="text-center py-2 text-sm text-slate-500">
-                          No courses found.
-                        </p>
+                        <p className="text-center py-2 text-sm text-slate-500">No courses found.</p>
                       )}
                     </ul>
                   </div>
@@ -343,6 +312,8 @@ const AddStudentModal = ({
               </div>
             </div>
           </div>
+
+          {/* Actions */}
           <div className="p-6 bg-slate-50 border-t rounded-b-xl flex justify-end items-center gap-4">
             <button
               type="button"
