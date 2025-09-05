@@ -46,7 +46,7 @@ const CourseAnalyticsView = () => {
   }, []);
 
   const myCourses = useMemo(
-    () => courses.filter((c) => c.teacherId === FACULTY_ID),
+    () => courses.filter((c) => c.instructorId === FACULTY_ID), // Changed from 'teacherId' to 'instructorId'
     [courses]
   );
 
@@ -115,9 +115,8 @@ const CourseAnalyticsView = () => {
           ? Math.round((studentPresentCount / studentRecords.length) * 100)
           : 100;
       const lastStatus =
-        studentRecords.sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        )[0]?.status || "N/A";
+        studentRecords.sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+          ?.status || "N/A";
       return {
         ...student,
         attendanceRate,
@@ -160,7 +159,7 @@ const CourseAnalyticsView = () => {
           {myCourses.length > 0 ? (
             myCourses.map((course) => (
               <option key={course.id} value={course.id}>
-                {course.name}
+                {course.title} {/* Changed from 'name' to 'title' */}
               </option>
             ))
           ) : (
@@ -238,9 +237,16 @@ const CourseAnalyticsView = () => {
                       courseData.studentAttendance
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map((student) => (
-                          <tr key={student.id} className="bg-white border-b hover:bg-slate-50">
-                            <td className="px-4 py-3 font-medium text-slate-900">{student.name}</td>
-                            <td className="px-4 py-3 text-center font-semibold">{student.attendanceRate}%</td>
+                          <tr
+                            key={student.id}
+                            className="bg-white border-b hover:bg-slate-50"
+                          >
+                            <td className="px-4 py-3 font-medium text-slate-900">
+                              {student.name}
+                            </td>
+                            <td className="px-4 py-3 text-center font-semibold">
+                              {student.attendanceRate}%
+                            </td>
                             <td className="px-4 py-3 text-center text-xs font-semibold">
                               <span
                                 className={`px-2 py-1 rounded-full ${
@@ -260,7 +266,10 @@ const CourseAnalyticsView = () => {
                         ))
                     ) : (
                       <tr>
-                        <td colSpan="3" className="text-center py-10 text-slate-500">
+                        <td
+                          colSpan="3"
+                          className="text-center py-10 text-slate-500"
+                        >
                           No students are currently enrolled in this course.
                         </td>
                       </tr>
