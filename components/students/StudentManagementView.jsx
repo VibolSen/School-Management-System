@@ -28,7 +28,7 @@ export default function StudentManagementView() {
     setError(null);
     try {
       // Fetch students
-      const studentsResponse = await fetch("/api/admin/users?role=student");
+      const studentsResponse = await fetch("/api/users");
       if (!studentsResponse.ok) {
         throw new Error(`HTTP error! status: ${studentsResponse.status}`);
       }

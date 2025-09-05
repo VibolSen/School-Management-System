@@ -109,8 +109,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen  py-4 px-4">
+      <div className="max-w-8xl mx-auto">
         {/* Profile Card */}
         <div className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-xl shadow-lg p-6">
           <div className="text-center mb-6">

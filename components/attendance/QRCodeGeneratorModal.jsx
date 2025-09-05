@@ -2,20 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
-import type { Course, Student } from '@/lib/types';
-
-interface QRCodeGeneratorModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  course: Course | null;
-  checkedInStudents: Student[];
-  totalStudents: number;
-}
 
 const QR_CODE_EXPIRATION_SECONDS = 120; // 2 minutes
 
-const QRCodeGeneratorModal: React.FC<QRCodeGeneratorModalProps> = ({ isOpen, onClose, course, checkedInStudents, totalStudents }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+const QRCodeGeneratorModal = ({ isOpen, onClose, course, checkedInStudents, totalStudents }) => {
+  const canvasRef = useRef(null);
   const [timeLeft, setTimeLeft] = useState(QR_CODE_EXPIRATION_SECONDS);
   
   useEffect(() => {
@@ -36,7 +27,6 @@ const QRCodeGeneratorModal: React.FC<QRCodeGeneratorModalProps> = ({ isOpen, onC
         setTimeLeft(prevTime => {
           if (prevTime <= 1) {
             clearInterval(timer);
-            // Optionally auto-close or show an "Expired" message
             return 0;
           }
           return prevTime - 1;

@@ -1,19 +1,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Course } from '@/lib/types';
-import { Department } from '@/lib/types';
 
-interface CourseTableProps {
-  courses: Course[];
-  onAddCourseClick: () => void;
-  onEditClick: (course: Course) => void;
-  onDeleteClick: (course: Course) => void;
-}
-
-const CourseTable: React.FC<CourseTableProps> = ({ courses, onAddCourseClick, onEditClick, onDeleteClick }) => {
+const CourseTable = ({ courses, onAddCourseClick, onEditClick, onDeleteClick }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState<string>('All');
+  const [departmentFilter, setDepartmentFilter] = useState('All');
 
   const filteredCourses = useMemo(() => {
     return courses.filter(course => {
@@ -23,6 +14,8 @@ const CourseTable: React.FC<CourseTableProps> = ({ courses, onAddCourseClick, on
       return matchesSearch && matchesDepartment;
     });
   }, [courses, searchTerm, departmentFilter]);
+
+  const departments = ['Science', 'Arts', 'Commerce', 'Engineering']; // Use your actual departments
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md">
@@ -42,7 +35,7 @@ const CourseTable: React.FC<CourseTableProps> = ({ courses, onAddCourseClick, on
                 className="w-full md:w-auto px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             >
                 <option value="All">All Departments</option>
-                {Object.values(Department).map(dep => <option key={dep} value={dep}>{dep}</option>)}
+                {departments.map(dep => <option key={dep} value={dep}>{dep}</option>)}
             </select>
             <button onClick={onAddCourseClick} className="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-700 transition">
               Add Course

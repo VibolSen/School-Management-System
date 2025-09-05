@@ -1,13 +1,6 @@
 import React from 'react';
-import type { LibraryResource } from '../types';
 
-interface ResourceDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  resource: LibraryResource | null;
-}
-
-const ResourceDetailModal: React.FC<ResourceDetailModalProps> = ({ isOpen, onClose, resource }) => {
+const ResourceDetailModal = ({ isOpen, onClose, resource }) => {
   if (!isOpen || !resource) return null;
 
   return (
@@ -67,7 +60,7 @@ const ResourceDetailModal: React.FC<ResourceDetailModalProps> = ({ isOpen, onClo
           </div>
         </div>
       </div>
-       <style>{`
+      <style>{`
           @keyframes fade-in-scale {
             from {
               transform: scale(.95);

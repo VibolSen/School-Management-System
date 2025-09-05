@@ -1,44 +1,35 @@
 'use client';
 
-import React, { useState, FormEvent, useEffect, useRef } from 'react';
-import type { Course } from '@/lib/types';
-import { Department } from '@/lib/types';
-
-interface AddCourseModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSaveCourse: (courseData: Omit<Course, 'id'>) => void;
-  courseToEdit?: Course | null;
-}
+import React, { useState, useEffect, useRef } from 'react';
 
 const initialFormState = {
   name: '',
-  department: Department.SCIENCE,
+  department: 'Science', // default department
 };
 
-const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose, onSaveCourse, courseToEdit }) => {
+const AddCourseModal = ({ isOpen, onClose, onSaveCourse, courseToEdit }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [error, setError] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef(null);
 
   const isEditMode = !!courseToEdit;
 
   useEffect(() => {
     if (isOpen) {
-        if (courseToEdit) {
-            setFormData({ name: courseToEdit.name, department: courseToEdit.department });
-        } else {
-            setFormData(initialFormState);
-        }
-        setError('');
-        // Autofocus on the input field for better UX
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 100); // Small delay to account for modal animation
+      if (courseToEdit) {
+        setFormData({ name: courseToEdit.name, department: courseToEdit.department });
+      } else {
+        setFormData(initialFormState);
+      }
+      setError('');
+      // Autofocus on the input
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   }, [isOpen, courseToEdit]);
 
-  const validate = (): boolean => {
+  const validate = () => {
     if (!formData.name.trim()) {
       setError('Course name is required.');
       return false;
@@ -47,18 +38,18 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose, onSave
     return true;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
       onSaveCourse(formData);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({...prev, [name]: value}));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   if (!isOpen) return null;
 
   return (
@@ -76,6 +67,7 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose, onSave
             </button>
           </div>
         </div>
+
         <form onSubmit={handleSubmit} noValidate>
           <div className="p-6 space-y-4">
             <div>
@@ -93,6 +85,7 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose, onSave
               />
               {error && <p id="name-error" className="text-xs text-red-500 mt-1">{error}</p>}
             </div>
+
             <div>
               <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-1">Department</label>
               <select
@@ -102,10 +95,14 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({ isOpen, onClose, onSave
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
               >
-                {Object.values(Department).map(dep => <option key={dep} value={dep}>{dep}</option>)}
+                <option value="Science">Science</option>
+                <option value="Arts">Arts</option>
+                <option value="Commerce">Commerce</option>
+                <option value="Engineering">Engineering</option>
               </select>
             </div>
           </div>
+
           <div className="p-6 bg-slate-50 border-t rounded-b-xl flex justify-end items-center gap-4">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
               Cancel

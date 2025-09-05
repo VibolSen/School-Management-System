@@ -23,7 +23,7 @@ export default function UserManagementView() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/admin/users");
+      const response = await fetch("/api/users");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
