@@ -1,19 +1,19 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
+const SALT_ROUNDS = 10;
 
 // GET Users or single user
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  const role = searchParams.get("role"); // Add role filter
+  const role = searchParams.get("role"); // Optional role filter
 
   if (id) {
     const user = await prisma.user.findUnique({
       where: { id },
-      include: {
-        role: true,
-      },
+      include: { role: true },
     });
     if (!user)
       return new Response(JSON.stringify({ error: "User not found" }), {
@@ -26,20 +26,13 @@ export async function GET(req) {
   }
 
   // Filter by role if provided
-  let whereClause = {};
-  if (role) {
-    whereClause = {
-      role: {
-        name: role, // Filter by role name
-      },
-    };
-  }
+  const whereClause = role
+    ? { role: { name: role } } 
+    : {};
 
   const users = await prisma.user.findMany({
     where: whereClause,
-    include: {
-      role: true, // Include role information
-    },
+    include: { role: true },
   });
 
   return new Response(JSON.stringify(users), {
@@ -60,12 +53,15 @@ export async function POST(req) {
   }
 
   try {
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+
     const user = await prisma.user.create({
       data: {
         name: data.name || null,
         email: data.email,
-        password: data.password,
-        role: { connect: { id: data.roleId || "students" } }, // default role
+        password: hashedPassword,
+        role: { connect: { id: data.roleId || "students" } },
         department: data.department || null,
         position: data.position || null,
         contactNumber: data.contactNumber || null,
@@ -78,9 +74,7 @@ export async function POST(req) {
           : undefined,
         isActive: true,
       },
-      include: {
-        role: true, // Include role information in response
-      },
+      include: { role: true },
     });
 
     return new Response(JSON.stringify(user), {
@@ -89,9 +83,7 @@ export async function POST(req) {
     });
   } catch (error) {
     console.error("Create user error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-    });
+    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
   }
 }
 
@@ -100,48 +92,40 @@ export async function PUT(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id)
-    return new Response(JSON.stringify({ error: "User ID required" }), {
-      status: 400,
-    });
+    return new Response(JSON.stringify({ error: "User ID required" }), { status: 400 });
 
   const data = await req.json();
 
   try {
     const updatePayload = { ...data, updatedAt: new Date() };
 
-    // Handle role update safely
+    // Hash password if provided
+    if (data.password) {
+      updatePayload.password = await bcrypt.hash(data.password, SALT_ROUNDS);
+    } else {
+      delete updatePayload.password;
+    }
+
+    // Role update
     if (data.roleId) {
-      // Only connect if the role exists in DB
-      const roleExists = await prisma.roleEnum.findUnique({
-        where: { id: data.roleId },
-      });
+      const roleExists = await prisma.roleEnum.findUnique({ where: { id: data.roleId } });
       if (!roleExists) {
-        return new Response(
-          JSON.stringify({
-            error: `Role '${data.roleId}' does not exist in DB`,
-          }),
-          { status: 400 }
-        );
+        return new Response(JSON.stringify({ error: `Role '${data.roleId}' does not exist` }), { status: 400 });
       }
       updatePayload.role = { connect: { id: data.roleId } };
       delete updatePayload.roleId;
     }
 
-    // Handle studentStatus relation
+    // Student status update
     if (data.studentStatusId) {
       updatePayload.studentStatus = { connect: { id: data.studentStatusId } };
       delete updatePayload.studentStatusId;
     }
 
-    // Remove empty password to avoid overwriting
-    if (!data.password) delete updatePayload.password;
-
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updatePayload,
-      include: {
-        role: true, // Include role information in response
-      },
+      include: { role: true },
     });
 
     return new Response(JSON.stringify(updatedUser), {
@@ -150,9 +134,7 @@ export async function PUT(req) {
     });
   } catch (error) {
     console.error("Update user error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-    });
+    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
   }
 }
 
@@ -161,16 +143,12 @@ export async function DELETE(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id)
-    return new Response(JSON.stringify({ error: "User ID required" }), {
-      status: 400,
-    });
+    return new Response(JSON.stringify({ error: "User ID required" }), { status: 400 });
 
   try {
     const deletedUser = await prisma.user.delete({
       where: { id },
-      include: {
-        role: true, // Include role information in response
-      },
+      include: { role: true },
     });
     return new Response(JSON.stringify(deletedUser), {
       status: 200,
@@ -178,8 +156,6 @@ export async function DELETE(req) {
     });
   } catch (error) {
     console.error("Delete user error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-    });
+    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
   }
 }

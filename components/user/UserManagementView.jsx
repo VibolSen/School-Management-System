@@ -40,6 +40,7 @@ export default function UserManagementView() {
       { id : "faculty", name: "Faculty" },
       { id: "hr", name: "Hr" },
       { id: "students", name: "Student" },
+      { id: "teacher", name: "Teacher" },
     ];
     setRoles(mockRoles);
   }, []);
