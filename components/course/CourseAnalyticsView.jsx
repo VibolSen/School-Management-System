@@ -15,21 +15,31 @@ import DashboardCard from "@/components/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import ChartBarIcon from "@/components/icons/ChartBarIcon";
 
-const FACULTY_ID = "S001"; // Example: logged-in faculty ID
-
 const CourseAnalyticsView = () => {
   const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
   const [attendances, setAttendances] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Get current user from your auth system (replace with actual implementation)
+  const currentUser = { id: "S001", role: "teacher" }; // Example user
 
   // Fetch courses, students, and attendance records from API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const coursesRes = await fetch("/api/courses");
-        const studentsRes = await fetch("/api/students");
-        const attendanceRes = await fetch("/api/attendances");
+        setLoading(true);
+        const [coursesRes, studentsRes, attendanceRes] = await Promise.all([
+          fetch("/api/courses"),
+          fetch("/api/users?role=student"),
+          fetch("/api/attendances"),
+        ]);
+
+        if (!coursesRes.ok) throw new Error("Failed to fetch courses");
+        if (!studentsRes.ok) throw new Error("Failed to fetch students");
+        if (!attendanceRes.ok) throw new Error("Failed to fetch attendances");
 
         const coursesData = await coursesRes.json();
         const studentsData = await studentsRes.json();
@@ -40,15 +50,20 @@ const CourseAnalyticsView = () => {
         setAttendances(attendanceData);
       } catch (err) {
         console.error("Failed to fetch analytics data:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
   }, []);
 
-  const myCourses = useMemo(
-    () => courses.filter((c) => c.instructorId === FACULTY_ID), // Changed from 'teacherId' to 'instructorId'
-    [courses]
-  );
+  const myCourses = useMemo(() => {
+    if (currentUser.role === "admin") {
+      return courses; // Admins see all courses
+    }
+    return courses.filter((c) => c.instructorId === currentUser.id);
+  }, [courses, currentUser]);
 
   useEffect(() => {
     if (!selectedCourseId && myCourses.length > 0) {
@@ -64,14 +79,19 @@ const CourseAnalyticsView = () => {
   const courseData = useMemo(() => {
     if (!selectedCourse) return null;
 
+    // Get enrolled students for this course
     const enrolledStudents = students.filter((student) =>
-      student.courses?.some((course) => course.id === selectedCourse.id)
+      student.enrollments?.some(
+        (enrollment) => enrollment.courseId === selectedCourse.id
+      )
     );
 
+    // Get attendance records for this course
     const courseAttendanceRecords = attendances.filter(
       (rec) => rec.courseId === selectedCourse.id
     );
 
+    // Calculate overall attendance rate
     const presentCount = courseAttendanceRecords.filter(
       (r) => r.status === "PRESENT" || r.status === "LATE"
     ).length;
@@ -79,16 +99,18 @@ const CourseAnalyticsView = () => {
     const overallAttendanceRate =
       courseAttendanceRecords.length > 0
         ? Math.round((presentCount / courseAttendanceRecords.length) * 100)
-        : 100;
+        : 0;
 
+    // Calculate attendance trend by date
     const attendanceByDate = {};
     courseAttendanceRecords.forEach((record) => {
-      if (!attendanceByDate[record.date]) {
-        attendanceByDate[record.date] = { present: 0, total: 0 };
+      const dateKey = new Date(record.date).toISOString().split("T")[0];
+      if (!attendanceByDate[dateKey]) {
+        attendanceByDate[dateKey] = { present: 0, total: 0 };
       }
-      attendanceByDate[record.date].total++;
+      attendanceByDate[dateKey].total++;
       if (record.status === "PRESENT" || record.status === "LATE") {
-        attendanceByDate[record.date].present++;
+        attendanceByDate[dateKey].present++;
       }
     });
 
@@ -103,9 +125,10 @@ const CourseAnalyticsView = () => {
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(-10);
 
+    // Calculate individual student attendance
     const studentAttendance = enrolledStudents.map((student) => {
       const studentRecords = courseAttendanceRecords.filter(
-        (rec) => rec.studentId === student.id
+        (rec) => rec.userId === student.id
       );
       const studentPresentCount = studentRecords.filter(
         (r) => r.status === "PRESENT" || r.status === "LATE"
@@ -113,10 +136,14 @@ const CourseAnalyticsView = () => {
       const attendanceRate =
         studentRecords.length > 0
           ? Math.round((studentPresentCount / studentRecords.length) * 100)
-          : 100;
-      const lastStatus =
-        studentRecords.sort((a, b) => new Date(b.date) - new Date(a.date))[0]
-          ?.status || "N/A";
+          : 0;
+
+      // Get most recent status
+      const sortedRecords = [...studentRecords].sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      );
+      const lastStatus = sortedRecords[0]?.status || "N/A";
+
       return {
         ...student,
         attendanceRate,
@@ -129,12 +156,30 @@ const CourseAnalyticsView = () => {
       overallAttendanceRate,
       attendanceTrend,
       studentAttendance,
+      totalRecords: courseAttendanceRecords.length,
+      presentCount,
     };
   }, [selectedCourse, students, attendances]);
 
   const handleCourseChange = (e) => {
     setSelectedCourseId(e.target.value || null);
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-slate-600">Loading analytics data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        Error: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -159,7 +204,7 @@ const CourseAnalyticsView = () => {
           {myCourses.length > 0 ? (
             myCourses.map((course) => (
               <option key={course.id} value={course.id}>
-                {course.title} {/* Changed from 'name' to 'title' */}
+                {course.title}
               </option>
             ))
           ) : (
@@ -181,42 +226,72 @@ const CourseAnalyticsView = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <DashboardCard
               title="Enrolled Students"
               value={courseData.enrolledStudents.length.toString()}
               icon={<UsersIcon />}
+              subtitle="Total students enrolled"
             />
             <DashboardCard
               title="Overall Attendance"
               value={`${courseData.overallAttendanceRate}%`}
               icon={<ChartBarIcon />}
+              subtitle={`${courseData.presentCount}/${courseData.totalRecords} sessions`}
+            />
+            <DashboardCard
+              title="Attendance Trend"
+              value={
+                courseData.attendanceTrend.length > 0
+                  ? `${
+                      courseData.attendanceTrend[
+                        courseData.attendanceTrend.length - 1
+                      ]["Attendance Rate"]
+                    }%`
+                  : "N/A"
+              }
+              icon={<ChartBarIcon />}
+              subtitle="Latest session rate"
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-3 bg-white p-6 rounded-xl shadow-md">
               <h2 className="text-xl font-semibold mb-4 text-slate-800">
-                Attendance Trend
+                Attendance Trend (Last 10 Sessions)
               </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={courseData.attendanceTrend}
-                  margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" fontSize={12} />
-                  <YAxis unit="%" domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="Attendance Rate"
-                    stroke="#8884d8"
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {courseData.attendanceTrend.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={courseData.attendanceTrend}
+                    margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" fontSize={12} />
+                    <YAxis
+                      domain={[0, 100]}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`${value}%`, "Attendance Rate"]}
+                      labelFormatter={(label) => `Date: ${label}`}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="Attendance Rate"
+                      stroke="#8884d8"
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }}
+                      dot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-16 text-slate-500">
+                  No attendance data available for this course yet.
+                </div>
+              )}
             </div>
 
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
@@ -235,17 +310,27 @@ const CourseAnalyticsView = () => {
                   <tbody>
                     {courseData.studentAttendance.length > 0 ? (
                       courseData.studentAttendance
-                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .sort((a, b) => a.name?.localeCompare(b.name || ""))
                         .map((student) => (
                           <tr
                             key={student.id}
                             className="bg-white border-b hover:bg-slate-50"
                           >
                             <td className="px-4 py-3 font-medium text-slate-900">
-                              {student.name}
+                              {student.name || "Unknown Student"}
                             </td>
                             <td className="px-4 py-3 text-center font-semibold">
-                              {student.attendanceRate}%
+                              <span
+                                className={
+                                  student.attendanceRate >= 80
+                                    ? "text-green-600"
+                                    : student.attendanceRate >= 60
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                                }
+                              >
+                                {student.attendanceRate}%
+                              </span>
                             </td>
                             <td className="px-4 py-3 text-center text-xs font-semibold">
                               <span
@@ -276,6 +361,123 @@ const CourseAnalyticsView = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {courseData.studentAttendance.length > 0 && (
+                <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                    Attendance Summary
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="text-green-600 font-semibold">
+                        {
+                          courseData.studentAttendance.filter(
+                            (s) => s.attendanceRate >= 80
+                          ).length
+                        }
+                      </div>
+                      <div className="text-slate-500">Good (80%+)</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-yellow-600 font-semibold">
+                        {
+                          courseData.studentAttendance.filter(
+                            (s) =>
+                              s.attendanceRate >= 60 && s.attendanceRate < 80
+                          ).length
+                        }
+                      </div>
+                      <div className="text-slate-500">Fair (60-79%)</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-red-600 font-semibold">
+                        {
+                          courseData.studentAttendance.filter(
+                            (s) => s.attendanceRate < 60
+                          ).length
+                        }
+                      </div>
+                      <div className="text-slate-500">Poor (&lt;60%)</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Additional Analytics Section */}
+          <div className="bg-white p-6 rounded-xl shadow-md">
+            <h2 className="text-xl font-semibold mb-4 text-slate-800">
+              Course Overview
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-medium text-slate-700 mb-3">
+                  Course Details
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Course Title:</span>
+                    <span className="font-medium">{selectedCourse.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Department:</span>
+                    <span className="font-medium">
+                      {selectedCourse.department || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Instructor:</span>
+                    <span className="font-medium">
+                      {selectedCourse.instructor?.name || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Total Sessions:</span>
+                    <span className="font-medium">
+                      {courseData.totalRecords}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium text-slate-700 mb-3">
+                  Performance Metrics
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Average Attendance:</span>
+                    <span className="font-medium">
+                      {courseData.overallAttendanceRate}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Students Enrolled:</span>
+                    <span className="font-medium">
+                      {courseData.enrolledStudents.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Completion Rate:</span>
+                    <span className="font-medium">
+                      {courseData.enrolledStudents.length > 0
+                        ? Math.round(
+                            (courseData.enrolledStudents.filter(
+                              (s) =>
+                                s.enrollments?.find(
+                                  (e) => e.courseId === selectedCourse.id
+                                )?.progress >= 100
+                            ).length /
+                              courseData.enrolledStudents.length) *
+                              100
+                          )
+                        : 0}
+                      %
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

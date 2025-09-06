@@ -44,6 +44,7 @@ export default function LoginPage() {
         else if (roleName === "admin") router.push("/admin/dashboard");
         else if (roleName === "hr") router.push("/hr/dashboard");
         else if (roleName === "faculty") router.push("/faculty/dashboard");
+        else if (roleName === "teacher") router.push("/teacher/dashboard");
         else router.push("/"); // fallback
       }
     } catch (err) {
