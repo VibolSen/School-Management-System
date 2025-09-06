@@ -3,14 +3,22 @@
 import React, { useState, useEffect, useRef } from "react";
 
 const initialFormState = {
-  title: "", // Changed from 'name' to 'title'
-  department: "Science", // default department
-  description: "", // Added new field
-  objectives: "", // Added new field
-  methodology: "", // Added new field
+  title: "",
+  department: "", // Empty default
+  description: "",
+  objectives: "",
+  methodology: "",
+  instructorId: "",
 };
 
-const AddCourseModal = ({ isOpen, onClose, onSaveCourse, courseToEdit }) => {
+const AddCourseModal = ({
+  isOpen,
+  onClose,
+  onSaveCourse,
+  courseToEdit,
+  teachers,
+  departments,
+}) => {
   const [formData, setFormData] = useState(initialFormState);
   const [error, setError] = useState("");
   const inputRef = useRef(null);
@@ -21,11 +29,12 @@ const AddCourseModal = ({ isOpen, onClose, onSaveCourse, courseToEdit }) => {
     if (isOpen) {
       if (courseToEdit) {
         setFormData({
-          title: courseToEdit.title, // Changed from 'name' to 'title'
-          department: courseToEdit.department,
+          title: courseToEdit.title,
+          department: courseToEdit.department || "",
           description: courseToEdit.description || "",
           objectives: courseToEdit.objectives || "",
           methodology: courseToEdit.methodology || "",
+          instructorId: courseToEdit.instructorId || "",
         });
       } else {
         setFormData(initialFormState);
@@ -40,8 +49,15 @@ const AddCourseModal = ({ isOpen, onClose, onSaveCourse, courseToEdit }) => {
 
   const validate = () => {
     if (!formData.title.trim()) {
-      // Changed from 'name' to 'title'
       setError("Course title is required.");
+      return false;
+    }
+    if (!formData.instructorId) {
+      setError("Please select an instructor.");
+      return false;
+    }
+    if (!formData.department) {
+      setError("Please select a department.");
       return false;
     }
     setError("");
@@ -117,17 +133,81 @@ const AddCourseModal = ({ isOpen, onClose, onSaveCourse, courseToEdit }) => {
                 value={formData.title}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  error
+                  error && !formData.title.trim()
                     ? "border-red-500 ring-1 ring-red-500"
                     : "border-slate-300"
                 } focus:outline-none focus:ring-1 focus:ring-blue-500`}
                 required
                 aria-describedby="title-error"
               />
-              {error && (
+              {error && !formData.title.trim() && (
                 <p id="title-error" className="text-xs text-red-500 mt-1">
                   {error}
                 </p>
+              )}
+            </div>
+
+            {/* Instructor Selection */}
+            <div>
+              <label
+                htmlFor="instructorId"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
+                Instructor
+              </label>
+              <select
+                id="instructorId"
+                name="instructorId"
+                value={formData.instructorId}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-md text-sm ${
+                  error && !formData.instructorId
+                    ? "border-red-500 ring-1 ring-red-500"
+                    : "border-slate-300"
+                } focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
+                required
+              >
+                <option value="">Select an instructor</option>
+                {teachers.map((teacher) => (
+                  <option key={teacher.id} value={teacher.id}>
+                    {teacher.name} - {teacher.email}
+                  </option>
+                ))}
+              </select>
+              {error && !formData.instructorId && (
+                <p className="text-xs text-red-500 mt-1">{error}</p>
+              )}
+            </div>
+
+            {/* Department Selection with real data */}
+            <div>
+              <label
+                htmlFor="department"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
+                Department
+              </label>
+              <select
+                id="department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-md text-sm ${
+                  error && !formData.department
+                    ? "border-red-500 ring-1 ring-red-500"
+                    : "border-slate-300"
+                } focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
+                required
+              >
+                <option value="">Select a department</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.name}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+              {error && !formData.department && (
+                <p className="text-xs text-red-500 mt-1">{error}</p>
               )}
             </div>
 
@@ -146,27 +226,6 @@ const AddCourseModal = ({ isOpen, onClose, onSaveCourse, courseToEdit }) => {
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                 rows="3"
               />
-            </div>
-
-            <div>
-              <label
-                htmlFor="department"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
-                Department
-              </label>
-              <select
-                id="department"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-              >
-                <option value="Science">Science</option>
-                <option value="Arts">Arts</option>
-                <option value="Commerce">Commerce</option>
-                <option value="Engineering">Engineering</option>
-              </select>
             </div>
 
             <div>

@@ -13,7 +13,9 @@ export async function GET(req) {
       include: { instructor: true, topics: true },
     });
     if (!course) {
-      return new Response(JSON.stringify({ error: "Course not found" }), { status: 404 });
+      return new Response(JSON.stringify({ error: "Course not found" }), {
+        status: 404,
+      });
     }
     return new Response(JSON.stringify(course), {
       status: 200,
@@ -41,9 +43,9 @@ export async function POST(req) {
         title: data.title,
         description: data.description,
         instructorId: data.instructorId,
+        department: data.department, // Add department field
         objectives: data.objectives,
         methodology: data.methodology,
-        // topics can be added later via a separate endpoint
       },
     });
 
@@ -52,7 +54,10 @@ export async function POST(req) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    console.error("Create course error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }
 
@@ -60,7 +65,10 @@ export async function POST(req) {
 export async function PUT(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  if (!id) return new Response(JSON.stringify({ error: "Course ID required" }), { status: 400 });
+  if (!id)
+    return new Response(JSON.stringify({ error: "Course ID required" }), {
+      status: 400,
+    });
 
   const data = await req.json();
 
@@ -68,7 +76,12 @@ export async function PUT(req) {
     const updatedCourse = await prisma.course.update({
       where: { id },
       data: {
-        ...data,
+        title: data.title,
+        description: data.description,
+        instructorId: data.instructorId,
+        department: data.department, // Add department field
+        objectives: data.objectives,
+        methodology: data.methodology,
         updatedAt: new Date(),
       },
     });
@@ -78,7 +91,10 @@ export async function PUT(req) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    console.error("Update course error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }
 
@@ -86,7 +102,10 @@ export async function PUT(req) {
 export async function DELETE(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  if (!id) return new Response(JSON.stringify({ error: "Course ID required" }), { status: 400 });
+  if (!id)
+    return new Response(JSON.stringify({ error: "Course ID required" }), {
+      status: 400,
+    });
 
   try {
     const deletedCourse = await prisma.course.delete({ where: { id } });
@@ -95,6 +114,9 @@ export async function DELETE(req) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    console.error("Delete course error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }

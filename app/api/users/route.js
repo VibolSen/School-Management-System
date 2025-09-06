@@ -6,15 +6,46 @@ const prisma = new PrismaClient();
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
+  const role = searchParams.get("role"); // Add role filter
 
   if (id) {
-    const user = await prisma.user.findUnique({ where: { id } });
-    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
-    return new Response(JSON.stringify(user), { status: 200, headers: { "Content-Type": "application/json" } });
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        role: true,
+      },
+    });
+    if (!user)
+      return new Response(JSON.stringify({ error: "User not found" }), {
+        status: 404,
+      });
+    return new Response(JSON.stringify(user), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
-  const users = await prisma.user.findMany();
-  return new Response(JSON.stringify(users), { status: 200, headers: { "Content-Type": "application/json" } });
+  // Filter by role if provided
+  let whereClause = {};
+  if (role) {
+    whereClause = {
+      role: {
+        name: role, // Filter by role name
+      },
+    };
+  }
+
+  const users = await prisma.user.findMany({
+    where: whereClause,
+    include: {
+      role: true, // Include role information
+    },
+  });
+
+  return new Response(JSON.stringify(users), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 // CREATE User
@@ -22,7 +53,10 @@ export async function POST(req) {
   const data = await req.json();
 
   if (!data.email || !data.password) {
-    return new Response(JSON.stringify({ error: "Email and password are required" }), { status: 400 });
+    return new Response(
+      JSON.stringify({ error: "Email and password are required" }),
+      { status: 400 }
+    );
   }
 
   try {
@@ -36,15 +70,28 @@ export async function POST(req) {
         position: data.position || null,
         contactNumber: data.contactNumber || null,
         image: data.image || null,
-        enrollmentDate: data.enrollmentDate ? new Date(data.enrollmentDate) : null,
-        studentStatus: data.studentStatusId ? { connect: { id: data.studentStatusId } } : undefined,
+        enrollmentDate: data.enrollmentDate
+          ? new Date(data.enrollmentDate)
+          : null,
+        studentStatus: data.studentStatusId
+          ? { connect: { id: data.studentStatusId } }
+          : undefined,
         isActive: true,
+      },
+      include: {
+        role: true, // Include role information in response
       },
     });
 
-    return new Response(JSON.stringify(user), { status: 201, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(user), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    console.error("Create user error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }
 
@@ -52,7 +99,10 @@ export async function POST(req) {
 export async function PUT(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  if (!id) return new Response(JSON.stringify({ error: "User ID required" }), { status: 400 });
+  if (!id)
+    return new Response(JSON.stringify({ error: "User ID required" }), {
+      status: 400,
+    });
 
   const data = await req.json();
 
@@ -62,10 +112,14 @@ export async function PUT(req) {
     // Handle role update safely
     if (data.roleId) {
       // Only connect if the role exists in DB
-      const roleExists = await prisma.roleEnum.findUnique({ where: { id: data.roleId } });
+      const roleExists = await prisma.roleEnum.findUnique({
+        where: { id: data.roleId },
+      });
       if (!roleExists) {
         return new Response(
-          JSON.stringify({ error: `Role '${data.roleId}' does not exist in DB` }),
+          JSON.stringify({
+            error: `Role '${data.roleId}' does not exist in DB`,
+          }),
           { status: 400 }
         );
       }
@@ -85,6 +139,9 @@ export async function PUT(req) {
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updatePayload,
+      include: {
+        role: true, // Include role information in response
+      },
     });
 
     return new Response(JSON.stringify(updatedUser), {
@@ -92,21 +149,37 @@ export async function PUT(req) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    console.error("Update user error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }
-
 
 // DELETE User
 export async function DELETE(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  if (!id) return new Response(JSON.stringify({ error: "User ID required" }), { status: 400 });
+  if (!id)
+    return new Response(JSON.stringify({ error: "User ID required" }), {
+      status: 400,
+    });
 
   try {
-    const deletedUser = await prisma.user.delete({ where: { id } });
-    return new Response(JSON.stringify(deletedUser), { status: 200, headers: { "Content-Type": "application/json" } });
+    const deletedUser = await prisma.user.delete({
+      where: { id },
+      include: {
+        role: true, // Include role information in response
+      },
+    });
+    return new Response(JSON.stringify(deletedUser), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    console.error("Delete user error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }

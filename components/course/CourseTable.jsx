@@ -13,7 +13,6 @@ const CourseTable = ({
 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
-      // Add safe access to properties with fallback values
       const courseTitle = course.title || "Untitled Course";
       const courseId = course.id || "";
       const courseDepartment = course.department || "General";
@@ -29,13 +28,19 @@ const CourseTable = ({
     });
   }, [courses, searchTerm, departmentFilter]);
 
-  const departments = ["Science", "Arts", "Commerce", "Engineering"];
+  // Get unique departments from actual courses
+  const departments = useMemo(() => {
+    const uniqueDepartments = [
+      ...new Set(courses.map((course) => course.department).filter(Boolean)),
+    ];
+    return ["All", ...uniqueDepartments.sort()];
+  }, [courses]);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
         <h2 className="text-xl font-semibold text-slate-800">
-          Available Courses
+          Available Courses ({filteredCourses.length})
         </h2>
         <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-2">
           <input
@@ -50,10 +55,9 @@ const CourseTable = ({
             onChange={(e) => setDepartmentFilter(e.target.value)}
             className="w-full md:w-auto px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
           >
-            <option value="All">All Departments</option>
-            {departments.map((dep) => (
-              <option key={dep} value={dep}>
-                {dep}
+            {departments.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
               </option>
             ))}
           </select>
@@ -78,6 +82,9 @@ const CourseTable = ({
               <th scope="col" className="px-6 py-3">
                 Department
               </th>
+              <th scope="col" className="px-6 py-3">
+                Instructor
+              </th>
               <th scope="col" className="px-6 py-3 text-center">
                 Actions
               </th>
@@ -85,10 +92,10 @@ const CourseTable = ({
           </thead>
           <tbody>
             {filteredCourses.map((course) => {
-              // Safe access to properties with fallback values
               const courseTitle = course.title || "Untitled Course";
               const courseId = course.id || "";
               const courseDepartment = course.department || "General";
+              const instructorName = course.instructor?.name || "No instructor";
 
               return (
                 <tr
@@ -100,6 +107,7 @@ const CourseTable = ({
                   </td>
                   <td className="px-6 py-4">{courseId}</td>
                   <td className="px-6 py-4">{courseDepartment}</td>
+                  <td className="px-6 py-4">{instructorName}</td>
                   <td className="px-6 py-4 text-center">
                     <button
                       onClick={() => onEditClick(course)}
@@ -121,7 +129,9 @@ const CourseTable = ({
         </table>
         {filteredCourses.length === 0 && (
           <div className="text-center py-10 text-slate-500">
-            No courses found matching your criteria.
+            {courses.length === 0
+              ? "No courses available. Click 'Add Course' to create one."
+              : "No courses found matching your criteria."}
           </div>
         )}
       </div>
