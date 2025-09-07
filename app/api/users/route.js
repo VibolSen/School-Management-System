@@ -6,40 +6,47 @@ const SALT_ROUNDS = 10;
 
 // GET Users or single user
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-  const role = searchParams.get("role"); // Optional role filter
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    const role = searchParams.get("role"); // Optional role filter
 
-  if (id) {
-    const user = await prisma.user.findUnique({
-      where: { id },
+    if (id) {
+      const user = await prisma.user.findUnique({
+        where: { id },
+        include: { role: true },
+      });
+
+      if (!user) {
+        return new Response(JSON.stringify({ error: "User not found" }), {
+          status: 404,
+        });
+      }
+
+      return new Response(JSON.stringify(user), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Filter by role if provided
+    const whereClause = role ? { role: { name: { equals: role } } } : {};
+
+    const users = await prisma.user.findMany({
+      where: whereClause,
       include: { role: true },
     });
-    if (!user)
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404,
-      });
-    return new Response(JSON.stringify(user), {
+
+    return new Response(JSON.stringify(users), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
+  } catch (err) {
+    console.error("GET /users error:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
-
-  // Filter by role if provided
-  const whereClause = role
-    ? { role: { name: role } } 
-    : {};
-
-  const users = await prisma.user.findMany({
-    where: whereClause,
-    include: { role: true },
-  });
-
-  return new Response(JSON.stringify(users), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
 }
+
 
 // CREATE User
 export async function POST(req) {

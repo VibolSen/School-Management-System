@@ -103,6 +103,7 @@ model Course {
   description String?
   instructor  User     @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   instructorId String
+  department   String? 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   objectives  String?
@@ -379,16 +380,22 @@ model Discussion {
 }
 
 model LibraryResource {
-  id          String       @id @default(uuid())
-  title       String
-  description String?
-  typeId      String
-  fileUrl     String?
-  uploadedById String
-  createdAt   DateTime @default(now())
-  uploadedBy  User @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  type        MaterialTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id              String       @id @default(uuid())
+  title           String
+  author          String?
+  description     String?
+  department      String       @default("General") // ✅ Default so existing rows get a value
+  publicationYear Int          @default(2000)      // ✅ Default so existing rows get a value
+  typeId          String
+  fileUrl         String?
+  uploadedById    String
+  createdAt       DateTime @default(now())
+
+  uploadedBy   User            @relation(fields: [uploadedById], references: [id])
+  type         MaterialTypeEnum @relation(fields: [typeId], references: [id])
 }
+
+
 
 model Configuration {
   id        String   @id @default(uuid())

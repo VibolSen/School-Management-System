@@ -10,6 +10,7 @@ const showMessage = (message, type = "success") => {
 export default function UserManagementView() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +38,7 @@ export default function UserManagementView() {
   const fetchRoles = useCallback(() => {
     const mockRoles = [
       { id: "admin", name: "Admin" },
-      { id : "faculty", name: "Faculty" },
+      { id: "faculty", name: "Faculty" },
       { id: "hr", name: "Hr" },
       { id: "students", name: "Student" },
       { id: "teacher", name: "Teacher" },
@@ -45,10 +46,24 @@ export default function UserManagementView() {
     setRoles(mockRoles);
   }, []);
 
+  // Fetch departments from API
+  const fetchDepartments = useCallback(async () => {
+    try {
+      const res = await fetch("/api/departments");
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
+      setDepartments(data);
+    } catch (err) {
+      console.error(err);
+      showMessage("Failed to load departments", "error");
+    }
+  }, []);
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
-  }, [fetchUsers, fetchRoles]);
+    fetchDepartments();
+  }, [fetchUsers, fetchRoles, fetchDepartments]);
 
   const handleAddClick = () => {
     setEditingUser(null);
@@ -147,7 +162,7 @@ export default function UserManagementView() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              {["Name", "Email", "Role", "Status", "Created", "Actions"].map((head) => (
+              {["Name", "Email", "Role", "Department", "Status", "Created", "Actions"].map((head) => (
                 <th key={head} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{head}</th>
               ))}
             </tr>
@@ -155,7 +170,7 @@ export default function UserManagementView() {
           <tbody className="bg-white divide-y divide-gray-200">
             {users.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-gray-500">No users found.</td>
+                <td colSpan={7} className="text-center py-8 text-gray-500">No users found.</td>
               </tr>
             )}
             {users.map((user) => (
@@ -163,6 +178,7 @@ export default function UserManagementView() {
                 <td className="px-6 py-4">{user.name}</td>
                 <td className="px-6 py-4">{user.email}</td>
                 <td className="px-6 py-4">{user.roleId}</td>
+                <td className="px-6 py-4">{user.department || "-"}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                     {user.isActive ? "Active" : "Inactive"}
@@ -171,7 +187,6 @@ export default function UserManagementView() {
                 <td className="px-6 py-4">{new Date(user.createdAt).toLocaleDateString()}</td>
                 <td className="px-6 py-4 space-x-2">
                   <button onClick={() => handleEditClick(user)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
-                 
                   <button onClick={() => handleDeleteClick(user.id)} className="text-red-600 hover:text-red-900">Delete</button>
                 </td>
               </tr>
@@ -180,13 +195,13 @@ export default function UserManagementView() {
         </table>
       </div>
 
-      {isModalOpen && <UserModal isOpen={isModalOpen} onClose={handleCloseModal} onSave={handleSaveUser} userToEdit={editingUser} roles={roles} />}
+      {isModalOpen && <UserModal isOpen={isModalOpen} onClose={handleCloseModal} onSave={handleSaveUser} userToEdit={editingUser} roles={roles} departments={departments} />}
     </div>
   );
 }
 
 // Modal for add/edit
-function UserModal({ isOpen, onClose, onSave, userToEdit, roles }) {
+function UserModal({ isOpen, onClose, onSave, userToEdit, roles, departments }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -220,20 +235,11 @@ function UserModal({ isOpen, onClose, onSave, userToEdit, roles }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-  
     const payload = { ...formData };
-  
-    // Default role for new users
-    if (!userToEdit) {
-      if (!payload.roleId) payload.roleId = "students";
-    } else {
-      // On edit, remove empty password
-      if (!payload.password) delete payload.password;
-    }
-  
+    if (!userToEdit && !payload.roleId) payload.roleId = "students";
+    if (userToEdit && !payload.password) delete payload.password;
     onSave(payload);
   };
-  
 
   if (!isOpen) return null;
 
@@ -245,19 +251,29 @@ function UserModal({ isOpen, onClose, onSave, userToEdit, roles }) {
           <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Name" className="w-full border rounded px-3 py-2" required />
           <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" className="w-full border rounded px-3 py-2" required />
           <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" className="w-full border rounded px-3 py-2" required={!userToEdit} />
+
+          {/* Role select */}
           <select name="roleId" value={formData.roleId} onChange={handleChange} className="w-full border rounded px-3 py-2" required>
             <option value="">Select Role</option>
             {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
           </select>
-          <input type="text" name="department" value={formData.department} onChange={handleChange} placeholder="Department" className="w-full border rounded px-3 py-2" />
+
+          {/* Department select */}
+          <select name="department" value={formData.department} onChange={handleChange} className="w-full border rounded px-3 py-2" required>
+            <option value="">Select Department</option>
+            {departments.map((dep) => <option key={dep.id} value={dep.name}>{dep.name}</option>)}
+          </select>
+
           <input type="text" name="position" value={formData.position} onChange={handleChange} placeholder="Position" className="w-full border rounded px-3 py-2" />
           <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleChange} placeholder="Contact Number" className="w-full border rounded px-3 py-2" />
+          
           {userToEdit && (
             <div className="flex items-center">
               <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="mr-2" />
               <label>Active</label>
             </div>
           )}
+
           <div className="flex justify-end space-x-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
             <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">{userToEdit ? "Update" : "Create"} User</button>

@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Single Resource Card
 const ResourceCard = ({ resource, onResourceClick, onEditClick, onDeleteClick }) => {
   const { title, author, coverImage, type, isAvailable } = resource;
 
@@ -27,8 +28,17 @@ const ResourceCard = ({ resource, onResourceClick, onEditClick, onDeleteClick })
       aria-label={`View details for ${title}`}
     >
       <div className="relative h-56">
-        <img className="w-full h-full object-cover" src={coverImage} alt={`Cover for ${title}`} loading="lazy" />
-        <div className="absolute top-2 left-2 px-2 py-1 text-xs font-semibold text-white bg-black bg-opacity-50 rounded-full">{type}</div>
+      <img
+  className="w-full h-full object-cover"
+  src={resource.fileUrl || '/default-cover.png'}
+  alt={`Cover for ${resource.title}`}
+  loading="lazy"
+/>
+
+
+        <div className="absolute top-2 left-2 px-2 py-1 text-xs font-semibold text-white bg-black bg-opacity-50 rounded-full">
+          {type?.name || 'Unknown Type'}
+        </div>
         <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
             onClick={handleEdit}
@@ -44,7 +54,7 @@ const ResourceCard = ({ resource, onResourceClick, onEditClick, onDeleteClick })
       </div>
       <div className="p-4 flex flex-col flex-grow">
         <h3 className="text-md font-bold text-slate-800 truncate" title={title}>{title}</h3>
-        <p className="text-sm text-slate-500 mb-3">{author}</p>
+        <p className="text-sm text-slate-500 mb-3">{author || 'Unknown Author'}</p>
         <div className="mt-auto flex justify-between items-center">
           {isAvailable ? (
             <span className="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">Available</span>
@@ -54,7 +64,11 @@ const ResourceCard = ({ resource, onResourceClick, onEditClick, onDeleteClick })
           <button 
             onClick={handleBorrowClick}
             disabled={!isAvailable}
-            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition ${isAvailable ? 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
+            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition ${
+              isAvailable
+                ? 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+            }`}
             aria-label={isAvailable ? `Borrow ${title}` : `${title} is not available`}
           >
             Borrow
@@ -65,8 +79,9 @@ const ResourceCard = ({ resource, onResourceClick, onEditClick, onDeleteClick })
   );
 };
 
+// Grid to display multiple resources
 const ELibraryGrid = ({ resources, onResourceClick, onEditClick, onDeleteClick }) => {
-  if (resources.length === 0) {
+  if (!resources || resources.length === 0) {
     return (
       <div className="text-center py-10 bg-white rounded-xl shadow-md">
         <svg className="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

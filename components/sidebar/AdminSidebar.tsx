@@ -93,6 +93,11 @@ const ADMIN_NAV_ITEMS = [
     href: "/admin/e-library",
   },
   {
+    label: "Types",
+    icon: <FiCalendar className="w-5 h-5" />,
+    href: "/admin/types",
+  },
+  {
     label: "Attendance",
     icon: <FiCalendar className="w-5 h-5" />,
     href: "/admin/attendance",

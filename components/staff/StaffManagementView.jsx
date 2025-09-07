@@ -9,6 +9,8 @@ const STAFF_ROLES = [
   { id: 'admin', name: 'Admin' },
   { id: 'faculty', name: 'Faculty' },
   { id: 'hr', name: 'HR' },
+  { id: 'teacher', name: 'Teacher' },
+  { id: 'students', name: 'Students' },
 ];
 
 // Simple alert notification
@@ -19,11 +21,13 @@ const showMessage = (message, type = 'success') => {
 export default function StaffManagementView() {
   const [staffList, setStaffList] = useState([]);
   const [roles, setRoles] = useState(STAFF_ROLES);
+  const [departments, setDepartments] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch staff
   const fetchStaff = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -42,9 +46,23 @@ export default function StaffManagementView() {
     }
   }, []);
 
+  // Fetch departments dynamically
+  const fetchDepartments = useCallback(async () => {
+    try {
+      const res = await fetch('/api/departments');
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+      setDepartments(data);
+    } catch (err) {
+      console.error(err);
+      showMessage('Failed to load departments', 'error');
+    }
+  }, []);
+
   useEffect(() => {
     fetchStaff();
-  }, [fetchStaff]);
+    fetchDepartments();
+  }, [fetchStaff, fetchDepartments]);
 
   const handleAddClick = () => {
     setEditingStaff(null);
@@ -58,7 +76,6 @@ export default function StaffManagementView() {
 
   const handleDeleteClick = async (id) => {
     if (!window.confirm('Are you sure you want to delete this staff member?')) return;
-
     try {
       const res = await fetch(`/api/users?id=${id}`, { method: 'DELETE' });
       if (!res.ok) {
@@ -80,48 +97,39 @@ export default function StaffManagementView() {
 
   const handleSaveStaff = async (staffData) => {
     try {
-      const dataToUpdate = {
+      const dataToSend = {
         name: staffData.name,
         email: staffData.email,
         contactNumber: staffData.contactNumber,
         department: staffData.department,
         isActive: staffData.isActive,
-        role: { connect: { id: staffData.roleId } },
-        // hireDate removed
+        role: { connect: { id: staffData.roleId } }, // connect role by ID
       };
-  
-      let res;
-      if (editingStaff) {
-        res = await fetch(`/api/users?id=${editingStaff.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dataToUpdate),
-        });
-      } else {
-        // For new staff, also include password
-        dataToUpdate["password"] = staffData.password;
-        res = await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dataToUpdate),
-        });
-      }
-  
+
+      // Add password for new staff
+      if (!editingStaff) dataToSend.password = staffData.password;
+
+      const res = await fetch(editingStaff ? `/api/users?id=${editingStaff.id}` : '/api/users', {
+        method: editingStaff ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSend),
+      });
+
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || `HTTP error ${res.status}`);
       }
-  
-      showMessage(`Staff member ${editingStaff ? "updated" : "added"} successfully!`);
+
+      showMessage(`Staff member ${editingStaff ? 'updated' : 'added'} successfully!`);
       fetchStaff();
     } catch (err) {
       console.error(err);
-      showMessage(`Failed to save staff: ${err.message}`, "error");
+      showMessage(`Failed to save staff: ${err.message}`, 'error');
     } finally {
       handleCloseModal();
     }
   };
-  
+
   if (isLoading) return <p className="text-center py-10">Loading staff...</p>;
   if (error) return <p className="text-center py-10 text-red-600">{error}</p>;
 
@@ -150,6 +158,7 @@ export default function StaffManagementView() {
           onSave={handleSaveStaff}
           staffToEdit={editingStaff}
           roles={roles}
+          departments={departments}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -15,35 +15,80 @@ import UsersIcon from "@/components/icons/UsersIcon";
 import BookOpenIcon from "@/components/icons/BookOpenIcon";
 import ChartBarIcon from "@/components/icons/ChartBarIcon";
 import ClockIcon from "@/components/icons/ClockIcon";
-import {
-  MOCK_COURSES,
-  MOCK_STUDENT_DATA,
-  MOCK_ATTENDANCE_DATA,
-} from "@/lib/constants";
 
-const FACULTY_ID = "S001"; // Dr. Evelyn Reed
 
-const FacultyDashboard = () => {
+const FacultyDashboard = ({ loggedInUser }) => {
+  const [courses, setCourses] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+
+  // Wait until loggedInUser is loaded
+  if (!loggedInUser) return <p>Loading...</p>;
+
+  const FACULTY_ID = loggedInUser.id; // ✅ safe now
+
+
+ // Fetch all courses
+ const fetchCourses = async () => {
+  try {
+    const res = await fetch("/api/courses");
+    if (!res.ok) throw new Error("Failed to fetch courses");
+    const data = await res.json();
+    setCourses(data);
+  } catch (err) {
+    console.error(err);
+    setCourses([]);
+  }
+};
+
+ // Fetch real users (students)
+ const fetchUsers = async () => {
+  try {
+    const res = await fetch("/api/users?role=STUDENT"); // optional: filter by role
+    if (!res.ok) throw new Error("Failed to fetch users");
+    const data = await res.json();
+    // console.log("users:", data); // log fetched students
+    setUsers(data);
+  } catch (err) {
+    console.error(err);
+    setUsers([]);
+  }
+};
+
+
+  // Fetch attendance if available via API
+  const fetchAttendance = async () => {
+    try {
+      const res = await fetch("/api/attendance"); // optional endpoint
+      if (!res.ok) throw new Error("Failed to fetch attendance");
+      const data = await res.json();
+      setAttendance(data);
+    } catch (err) {
+      console.warn("Attendance API not available, using empty array");
+      setAttendance([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchCourses();
+    fetchUsers();
+    fetchAttendance();
+  }, []);
+
+
   const myCourses = useMemo(
-    () => MOCK_COURSES.filter((c) => c.teacherId === FACULTY_ID),
-    []
+    () => courses.filter((c) => c.teacherId === FACULTY_ID),
+    [courses, FACULTY_ID]
   );
-
+  
   const myCourseIds = useMemo(() => myCourses.map((c) => c.id), [myCourses]);
 
-  const myStudentsCount = useMemo(() => {
-    const studentIds = new Set();
-    MOCK_STUDENT_DATA.forEach((student) => {
-      if (student.courses.some((course) => myCourseIds.includes(course.id))) {
-        studentIds.add(student.id);
-      }
-    });
-    return studentIds.size;
-  }, [myCourseIds]);
+  
 
+  // Today's attendance
   const todaysAttendanceRate = useMemo(() => {
     const todayString = new Date().toISOString().split("T")[0];
-    const todaysRecords = MOCK_ATTENDANCE_DATA.filter(
+    const todaysRecords = attendance.filter(
       (rec) => rec.date === todayString && myCourseIds.includes(rec.courseId)
     );
     if (todaysRecords.length === 0) return "N/A";
@@ -52,8 +97,9 @@ const FacultyDashboard = () => {
       (r) => r.status === "PRESENT" || r.status === "LATE"
     ).length;
     return `${Math.round((presentCount / todaysRecords.length) * 100)}%`;
-  }, [myCourseIds]);
+  }, [attendance, myCourseIds]);
 
+  // Today's schedule (example: first 4 courses)
   const todaysSchedule = useMemo(() => {
     return myCourses
       .map((course, index) => ({
@@ -63,48 +109,34 @@ const FacultyDashboard = () => {
       .slice(0, 4);
   }, [myCourses]);
 
-  const attendanceAlerts = useMemo(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayString = yesterday.toISOString().split("T")[0];
-
-    const alerts = MOCK_ATTENDANCE_DATA.filter(
-      (rec) =>
-        rec.date === yesterdayString &&
-        myCourseIds.includes(rec.courseId) &&
-        (rec.status === "ABSENT" || rec.status === "LATE")
-    );
-
-    return alerts
-      .map((alert) => {
-        const student = MOCK_STUDENT_DATA.find((s) => s.id === alert.studentId);
-        const course = MOCK_COURSES.find((c) => c.id === alert.courseId);
-        return {
-          ...alert,
-          studentName: student?.name || "Unknown",
-          courseName: course?.name || "Unknown",
-        };
-      })
-      .slice(0, 5);
-  }, [myCourseIds]);
-
+  // Course-wise attendance data
   const courseAttendanceData = useMemo(() => {
     const todayString = new Date().toISOString().split("T")[0];
 
     return myCourses.map((course) => {
-      const courseRecords = MOCK_ATTENDANCE_DATA.filter(
+      const courseRecords = attendance.filter(
         (r) => r.date === todayString && r.courseId === course.id
       );
-      if (courseRecords.length === 0) {
-        return { name: course.name, "Attendance Rate": 0 };
-      }
+      if (courseRecords.length === 0) return { name: course.name, "Attendance Rate": 0 };
+
       const presentCount = courseRecords.filter(
         (r) => r.status === "PRESENT" || r.status === "LATE"
       ).length;
       const rate = Math.round((presentCount / courseRecords.length) * 100);
       return { name: course.name, "Attendance Rate": rate };
     });
-  }, [myCourses]);
+  }, [attendance, myCourses]);
+
+  const myStudentsCount = useMemo(() => {
+    const studentIds = new Set();
+    users.forEach((student) => {
+      if (Array.isArray(student.courses) && student.courses.some(course => myCourseIds.includes(course.id))) {
+        studentIds.add(student.id);
+      }
+    });
+    return studentIds.size;
+  }, [users, myCourseIds]);
+  
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -116,12 +148,12 @@ const FacultyDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <DashboardCard
           title="My Courses"
-          value={myCourses.length.toString()}
+          value={courses.length.toString()}
           icon={<BookOpenIcon />}
         />
         <DashboardCard
           title="Total Students"
-          value={myStudentsCount.toString()}
+          value={users.length.toString()}
           icon={<UsersIcon />}
         />
         <DashboardCard
@@ -145,11 +177,7 @@ const FacultyDashboard = () => {
               <XAxis dataKey="name" fontSize={12} />
               <YAxis unit="%" />
               <Tooltip />
-              <Bar
-                dataKey="Attendance Rate"
-                fill="#3b82f6"
-                name="Attendance Rate"
-              />
+              <Bar dataKey="Attendance Rate" fill="#3b82f6" name="Attendance Rate" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -167,9 +195,7 @@ const FacultyDashboard = () => {
                       <ClockIcon />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-700">
-                        {course.name}
-                      </p>
+                      <p className="font-semibold text-slate-700">{course.name}</p>
                       <p className="text-sm text-slate-500">{course.time}</p>
                     </div>
                   </li>
@@ -178,47 +204,6 @@ const FacultyDashboard = () => {
             ) : (
               <p className="text-sm text-slate-500 text-center py-4">
                 No classes scheduled for today.
-              </p>
-            )}
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md">
-            <h2 className="text-xl font-semibold mb-4 text-slate-800">
-              Attendance Alerts
-            </h2>
-            <p className="text-sm text-slate-500 mb-3">
-              Students who were absent or late yesterday.
-            </p>
-            {attendanceAlerts.length > 0 ? (
-              <ul className="space-y-2">
-                {attendanceAlerts.map((alert) => (
-                  <li
-                    key={alert.id}
-                    className="p-2 bg-slate-50 rounded-lg flex justify-between items-center text-sm"
-                  >
-                    <div>
-                      <span className="font-semibold text-slate-800">
-                        {alert.studentName}
-                      </span>
-                      <span className="text-slate-500">
-                        {" "}
-                        in {alert.courseName}
-                      </span>
-                    </div>
-                    {alert.status === "LATE" ? (
-                      <span className="px-2 py-0.5 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full">
-                        Late
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 text-xs font-semibold text-red-800 bg-red-100 rounded-full">
-                        Absent
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-500 text-center py-4">
-                Perfect attendance yesterday!
               </p>
             )}
           </div>

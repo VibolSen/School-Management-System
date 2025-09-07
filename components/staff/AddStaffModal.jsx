@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 
-export default function AddStaffModal({ isOpen, onClose, onSave, staffToEdit, roles }) {
+export default function AddStaffModal({ isOpen, onClose, onSave, staffToEdit, roles, departments }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     contactNumber: '',
     department: '',
     roleId: roles?.[0]?.id || '',
-    hireDate: '',
     password: '',
     isActive: true,
   });
@@ -23,9 +22,6 @@ export default function AddStaffModal({ isOpen, onClose, onSave, staffToEdit, ro
           contactNumber: staffToEdit.contactNumber || '',
           department: staffToEdit.department || '',
           roleId: staffToEdit.roleId || roles?.[0]?.id || '',
-          hireDate: staffToEdit.hireDate
-            ? new Date(staffToEdit.hireDate).toISOString().split('T')[0]
-            : '',
           isActive: staffToEdit.isActive ?? true,
           password: '',
         });
@@ -61,93 +57,28 @@ export default function AddStaffModal({ isOpen, onClose, onSave, staffToEdit, ro
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          {/* Name */}
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
+          <input type="text" name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} className="w-full border px-3 py-2 rounded" required />
+          <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="w-full border px-3 py-2 rounded" required />
+          <input type="text" name="contactNumber" placeholder="Phone" value={formData.contactNumber} onChange={handleChange} className="w-full border px-3 py-2 rounded" required />
 
-          {/* Email */}
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-
-          {/* Contact */}
-          <input
-            type="text"
-            name="contactNumber"
-            placeholder="Phone"
-            value={formData.contactNumber}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-
-          {/* Department (text input) */}
-          <input
-            type="text"
-            name="department"
-            placeholder="Department"
-            value={formData.department}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-
-          {/* Role */}
-          <select
-            name="roleId"
-            value={formData.roleId}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-          >
-            <option value="">Select Role</option>
-            {(roles || []).map(r => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
+          {/* Department select */}
+          <select name="department" value={formData.department} onChange={handleChange} className="w-full border rounded px-3 py-2" required>
+            <option value="">Select Department</option>
+            {(departments || []).map(dep => <option key={dep.id} value={dep.name}>{dep.name}</option>)}
           </select>
 
-          {/* Password for new staff */}
+          {/* Role select */}
+          <select name="roleId" value={formData.roleId} onChange={handleChange} className="w-full border px-3 py-2 rounded" required>
+            <option value="">Select Role</option>
+            {(roles || []).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+
           {!staffToEdit && (
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password || ''}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-              required
-            />
+            <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} className="w-full border px-3 py-2 rounded" required />
           )}
 
-          {/* Hire Date */}
-          <input
-            type="date"
-            name="hireDate"
-            value={formData.hireDate}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-
           {/* Status */}
-          <select
-            name="isActive"
-            value={formData.isActive ? 'Active' : 'Inactive'}
-            onChange={e => setFormData(prev => ({ ...prev, isActive: e.target.value === 'Active' }))}
-            className="w-full border px-3 py-2 rounded"
-          >
+          <select name="isActive" value={formData.isActive ? 'Active' : 'Inactive'} onChange={e => setFormData(prev => ({ ...prev, isActive: e.target.value === 'Active' }))} className="w-full border px-3 py-2 rounded">
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
@@ -155,9 +86,7 @@ export default function AddStaffModal({ isOpen, onClose, onSave, staffToEdit, ro
           {/* Buttons */}
           <div className="col-span-2 flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-              {staffToEdit ? 'Update' : 'Create'}
-            </button>
+            <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">{staffToEdit ? 'Update' : 'Create'}</button>
           </div>
         </form>
       </div>

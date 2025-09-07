@@ -1,187 +1,227 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import ELibraryGrid from "./ELibraryGrid";
-import ResourceDetailModal from "./ResourceDetailModal";
 import AddResourceModal from "./AddResourceModal";
 import ConfirmationModal from "./ConfirmationModal";
+import ResourceDetailModal from "./ResourceDetailModal";
 
-const ELibraryView = () => {
-  const [resources, setResources] = useState([]); // Replace with API fetch if needed
+const ELibraryView = ({ loggedInUser }) => {
+  const [resources, setResources] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All");
   const [departmentFilter, setDepartmentFilter] = useState("All");
+  const [departments, setDepartments] = useState([]);
+  const [typeFilter, setTypeFilter] = useState("All"); // ✅ NEW state
 
   const [selectedResource, setSelectedResource] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
   const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [types, setTypes] = useState([]);
 
-  const handleResourceClick = (resource) => setSelectedResource(resource);
-  const handleCloseDetailModal = () => setSelectedResource(null);
+
+  // Safe fetch resources
+  const fetchResources = async () => {
+    try {
+      const res = await fetch("/api/library");
+      if (!res.ok) throw new Error(res.statusText);
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : [];
+      setResources(data);
+    } catch (e) {
+      console.error("Failed to fetch resources:", e);
+      setResources([]);
+    }
+  };
+
+  const fetchTypes = async () => {
+    try {
+      const res = await fetch("/api/types"); // your types API
+      if (!res.ok) throw new Error(res.statusText);
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : [];
+      setTypes(data); // store array of {id, name}
+    } catch (e) {
+      console.error("Failed to fetch types:", e);
+      setTypes([]);
+    }
+  };
+  
+
+  // Safe fetch departments
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch("/api/departments");
+      if (!res.ok) throw new Error(res.statusText);
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : [];
+      setDepartments(data.map(dep => dep.name));
+    } catch (e) {
+      console.error("Failed to fetch departments:", e);
+      setDepartments([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchResources();
+    fetchDepartments();
+    fetchTypes();
+  }, []);
+
   const handleAddClick = () => {
     setEditingResource(null);
     setIsEditModalOpen(true);
   };
+
   const handleEditClick = (resource) => {
     setEditingResource(resource);
     setIsEditModalOpen(true);
   };
-  const handleDeleteRequest = (resource) => setResourceToDelete(resource);
 
-  const handleConfirmDelete = () => {
-    if (!resourceToDelete) return;
-    const updatedResources = resources.filter(
-      (r) => r.id !== resourceToDelete.id
-    );
-    setResources(updatedResources);
-    setResourceToDelete(null);
-  };
-
-  const handleSaveResource = (resourceData) => {
-    if (editingResource) {
-      const updatedResource = { ...editingResource, ...resourceData };
-      const newResources = resources.map((r) =>
-        r.id === editingResource.id ? updatedResource : r
-      );
-      setResources(newResources);
-    } else {
-      const newResource = {
-        id: `LIB${Date.now()}`,
-        isAvailable: true,
-        ...resourceData,
-      };
-      const newResources = [...resources, newResource].sort((a, b) =>
-        a.title.localeCompare(b.title)
-      );
-      setResources(newResources);
+  const handleDelete = async (resource) => {
+    try {
+      const res = await fetch(`/api/library?id=${resource.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete resource");
+  
+      // Remove the resource from state
+      setResources(resources.filter(r => r.id !== resource.id));
+  
+      // Close the modal
+      setResourceToDelete(null);
+    } catch (e) {
+      console.error(e);
     }
-    setIsEditModalOpen(false);
-    setEditingResource(null);
   };
+  
 
+  const handleSaveResource = async (resourceData) => {
+    if (!loggedInUser) {
+      console.error("No logged-in user!");
+      return;
+    }
+  
+    if (!resourceData.typeId) {
+      console.error("Material type is required!");
+      return;
+    }
+  
+    try {
+      const formData = new FormData();
+      formData.append("title", resourceData.title);
+      formData.append("uploadedById", loggedInUser.id);
+      formData.append("typeId", resourceData.typeId);
+  
+      // ✅ FIX: include author
+      if (resourceData.author) formData.append("author", resourceData.author);
+  
+      if (resourceData.department) formData.append("department", resourceData.department);
+      if (resourceData.description) formData.append("description", resourceData.description);
+      if (resourceData.coverImage) formData.append("coverImage", resourceData.coverImage);
+      
+      // Make sure publicationYear is a valid number
+      if (resourceData.publicationYear && !isNaN(resourceData.publicationYear)) {
+        formData.append("publicationYear", String(resourceData.publicationYear));
+      }
+  
+      const url = editingResource
+        ? `/api/library?id=${editingResource.id}`
+        : "/api/library";
+      const method = editingResource ? "PUT" : "POST";
+  
+      const res = await fetch(url, { method, body: formData });
+      if (!res.ok) {
+        const errMsg = await res.text();
+        throw new Error(errMsg || "Failed to save resource");
+      }
+  
+      fetchResources();
+      setIsEditModalOpen(false);
+      setEditingResource(null);
+    } catch (err) {
+      console.error("Failed to save resource", err);
+    }
+  };
+  
+  // ✅ Filter by department and type
   const filteredResources = useMemo(() => {
-    return resources.filter((resource) => {
-      const lowerCaseSearchTerm = searchTerm.toLowerCase();
-      const matchesSearch =
-        resource.title.toLowerCase().includes(lowerCaseSearchTerm) ||
-        resource.author.toLowerCase().includes(lowerCaseSearchTerm);
-      const matchesType = typeFilter === "All" || resource.type === typeFilter;
-      const matchesDepartment =
-        departmentFilter === "All" || resource.department === departmentFilter;
-      return matchesSearch && matchesType && matchesDepartment;
-    });
-  }, [resources, searchTerm, typeFilter, departmentFilter]);
-
-  const resourceTypes = ["Book", "Journal", "Magazine"]; // Replace with actual ResourceType values
-  const departments = ["Science", "Arts", "Commerce", "Engineering"]; // Replace with actual Department values
+    return resources.filter(r =>
+      (r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.description?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (departmentFilter === "All" || r.department === departmentFilter) &&
+      (typeFilter === "All" || r.type?.id === typeFilter)
+    );
+  }, [resources, searchTerm, departmentFilter, typeFilter]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">E-Library</h1>
-          <p className="text-slate-500">
-            Browse, search, and manage the digital collection of books and
-            journals.
-          </p>
-        </div>
-        <button
-          onClick={handleAddClick}
-          className="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-700 transition"
-        >
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">E-Library</h1>
+        <button onClick={handleAddClick} className="bg-blue-600 text-white px-4 py-2 rounded">
           Add Resource
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-md sticky top-0 z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-1">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by title or author..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3"
-                  aria-label="Clear search"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 md:col-span-2">
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-            >
-              <option value="All">All Types</option>
-              {resourceTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-            >
-              <option value="All">All Departments</option>
-              {departments.map((dep) => (
-                <option key={dep} value={dep}>
-                  {dep}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="border px-3 py-2 rounded"
+        />
+        {/* ✅ Type Filter */}
+        <select
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+          className="border px-3 py-2 rounded"
+        >
+          <option value="All">All Types</option>
+          {types.map(type => (
+            <option key={type.id} value={type.id}>{type.name}</option>
+          ))}
+        </select>
+
+        {/* Department Filter */}
+        <select
+          value={departmentFilter}
+          onChange={e => setDepartmentFilter(e.target.value)}
+          className="border px-3 py-2 rounded"
+        >
+          <option value="All">All Departments</option>
+          {departments.map(dep => (
+            <option key={dep} value={dep}>{dep}</option>
+          ))}
+        </select>
       </div>
 
       <ELibraryGrid
         resources={filteredResources}
-        onResourceClick={handleResourceClick}
         onEditClick={handleEditClick}
-        onDeleteClick={handleDeleteRequest}
-      />
-
-      <ResourceDetailModal
-        isOpen={!!selectedResource}
-        onClose={handleCloseDetailModal}
-        resource={selectedResource}
+        onDeleteClick={setResourceToDelete}
+        onResourceClick={setSelectedResource}
       />
 
       <AddResourceModal
         isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingResource(null);
-        }}
+        onClose={() => setIsEditModalOpen(false)}
         onSaveResource={handleSaveResource}
         resourceToEdit={editingResource}
+        departments={departments}
+        types={types}
       />
 
       <ConfirmationModal
         isOpen={!!resourceToDelete}
         onClose={() => setResourceToDelete(null)}
-        onConfirm={handleConfirmDelete}
+        onConfirm={() => handleDelete(resourceToDelete)}
         title="Delete Resource"
-        message={
-          <div>
-            <p>
-              Are you sure you want to delete "
-              <strong>{resourceToDelete?.title}</strong>"?
-            </p>
-            <p className="mt-2 text-sm">This action cannot be undone.</p>
-          </div>
-        }
+        message={`Are you sure you want to delete "${resourceToDelete?.title}"?`}
+      />
+
+      <ResourceDetailModal
+        isOpen={!!selectedResource}
+        onClose={() => setSelectedResource(null)}
+        resource={selectedResource}
       />
     </div>
   );
