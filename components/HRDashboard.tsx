@@ -88,16 +88,22 @@ const HRDashboard = () => {
           title="Total Staff"
           value={totalStaff.toString()}
           icon={<BriefcaseIcon />}
+          change="" // Add empty string if prop is required
+          changeType="neutral" // Add neutral change type
         />
         <DashboardCard
           title="Active Staff"
           value={activeStaff.toString()}
           icon={<UsersIcon />}
+          change=""
+          changeType="neutral"
         />
         <DashboardCard
           title="Staff on Leave"
           value={onLeave.toString()}
           icon={<BriefcaseIcon />}
+          change=""
+          changeType="neutral"
         />
         <DashboardCard
           title="New Hires (3 Mo)"
