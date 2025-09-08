@@ -30,26 +30,27 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setError(data.error || "Invalid credentials");
-      } else {
-        // Save JWT token (localStorage or cookie)
-        localStorage.setItem("token", data.token);
-
-        // Get role name and normalize case
-        const roleName = data.user.role?.name?.toLowerCase();
-
-        console.log("User role:", roleName); // debugging
-
-        // Role-based redirect
-        if (roleName === "students") router.push("/student/dashboard");
-        else if (roleName === "admin") router.push("/admin/dashboard");
-        else if (roleName === "hr") router.push("/hr/dashboard");
-        else if (roleName === "faculty") router.push("/faculty/dashboard");
-        else if (roleName === "teacher") router.push("/teachers/dashboard");
-        else router.push("/"); // fallback
+        return;
       }
+
+      // Save JWT token
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+
+      // Get role name safely and normalize case
+      const roleId = data?.user?.role?.id?.toLowerCase() || "";
+
+      if (roleId === "students")
+        router.push("/student/dashboard"); // plural route
+      else if (roleId === "admin") router.push("/admin/dashboard");
+      else if (roleId === "hr") router.push("/hr/dashboard");
+      else if (roleId === "faculty") router.push("/faculty/dashboard");
+      else if (roleId === "teacher") router.push("/teachers/dashboard");
+      else router.push("/");
     } catch (err) {
-      console.error(err);
-      setError("Login failed");
+      console.error("Login error:", err);
+      setError("Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
