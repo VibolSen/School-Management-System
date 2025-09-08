@@ -1,27 +1,18 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import QRCode from "qrcode";
-import type { Course, Student } from "@/lib/types";
-
-interface QRCodeGeneratorModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  course: Course | null;
-  checkedInStudents: Student[];
-  totalStudents: number;
-}
+import React, { useState, useEffect, useRef } from 'react';
+import QRCode from 'qrcode';
 
 const QR_CODE_EXPIRATION_SECONDS = 120; // 2 minutes
 
-const QRCodeGeneratorModal: React.FC<QRCodeGeneratorModalProps> = ({
+const QRCodeGeneratorModal = ({
   isOpen,
   onClose,
   course,
   checkedInStudents,
   totalStudents,
 }) => {
-  const canvasRef = useRef < HTMLCanvasElement > null;
+  const canvasRef = useRef(null);
   const [timeLeft, setTimeLeft] = useState(QR_CODE_EXPIRATION_SECONDS);
 
   useEffect(() => {
@@ -37,9 +28,9 @@ const QRCodeGeneratorModal: React.FC<QRCodeGeneratorModalProps> = ({
       QRCode.toCanvas(
         canvasRef.current,
         qrData,
-        { width: 256, errorCorrectionLevel: "H" },
+        { width: 256, errorCorrectionLevel: 'H' },
         (error) => {
-          if (error) console.error("Error generating QR code:", error);
+          if (error) console.error('Error generating QR code:', error);
         }
       );
 
@@ -47,7 +38,6 @@ const QRCodeGeneratorModal: React.FC<QRCodeGeneratorModalProps> = ({
         setTimeLeft((prevTime) => {
           if (prevTime <= 1) {
             clearInterval(timer);
-            // Optionally auto-close or show an "Expired" message
             return 0;
           }
           return prevTime - 1;
@@ -74,10 +64,7 @@ const QRCodeGeneratorModal: React.FC<QRCodeGeneratorModalProps> = ({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm text-center animate-fade-in-scale">
         <div className="p-6 border-b">
           <div className="flex justify-between items-center">
-            <h2
-              id="qr-modal-title"
-              className="text-xl font-bold text-slate-800"
-            >
+            <h2 id="qr-modal-title" className="text-xl font-bold text-slate-800">
               Live Attendance
             </h2>
             <button
@@ -109,7 +96,7 @@ const QRCodeGeneratorModal: React.FC<QRCodeGeneratorModalProps> = ({
 
           <div
             className={`relative inline-block p-4 bg-slate-100 rounded-lg ${
-              isExpired ? "opacity-20" : ""
+              isExpired ? 'opacity-20' : ''
             }`}
           >
             <canvas ref={canvasRef} />
@@ -129,9 +116,9 @@ const QRCodeGeneratorModal: React.FC<QRCodeGeneratorModalProps> = ({
               </p>
             ) : (
               <p className="text-slate-600">
-                Code expires in:{" "}
+                Code expires in:{' '}
                 <span className="font-bold text-blue-600 text-lg">{`${minutes}:${
-                  seconds < 10 ? "0" : ""
+                  seconds < 10 ? '0' : ''
                 }${seconds}`}</span>
               </p>
             )}
