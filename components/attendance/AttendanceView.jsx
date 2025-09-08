@@ -1,68 +1,60 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import AttendanceTable from './AttendanceTable';
-import QRCodeGeneratorModal from './QRCodeGeneratorModal';
+import React, { useState, useMemo, useEffect } from 'react';
+import AttendanceTable from '@/components/AttendanceTable';
+import QRCodeGeneratorModal from '@/components/QRCodeGeneratorModal';
+import { MOCK_ATTENDANCE_DATA, MOCK_COURSES, MOCK_STUDENT_DATA, eventEmitter, StudentCheckInPayload, MOCK_DEPARTMENTS } from '@/lib/constants';
+import type { AttendanceRecord, Course, Student } from '@/lib/types';
+import { AttendanceStatus, Role } from '@/lib/types';
+import { useUser } from '@/context/UserContext';
 
-const FACULTY_ID = 'S001'; // Optional fallback or remove if using real user ID
+const FACULTY_ID = 'S001'; // Mock current faculty user
 
-const AttendanceView = () => {
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [currentUserRole, setCurrentUserRole] = useState(null);
-
+const AttendanceView: React.FC = () => {
+  const { currentUserRole } = useUser();
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(MOCK_ATTENDANCE_DATA);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [departmentFilter, setDepartmentFilter] = useState('All');
-  const [courseFilter, setCourseFilter] = useState('All');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('All');
+  const [courseFilter, setCourseFilter] = useState<string>('All');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
 
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [selectedCourseForQr, setSelectedCourseForQr] = useState(null);
-  const [qrCourseSelection, setQrCourseSelection] = useState('');
-  const [liveCheckedInStudents, setLiveCheckedInStudents] = useState([]);
+  const [selectedCourseForQr, setSelectedCourseForQr] = useState<Course | null>(null);
+  const [qrCourseSelection, setQrCourseSelection] = useState<string>('');
+  const [liveCheckedInStudents, setLiveCheckedInStudents] = useState<Student[]>([]);
+  
+  const canGenerateQr = currentUserRole === Role.FACULTY || currentUserRole === Role.ADMINISTRATOR;
 
-  // Fetch real data from APIs
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [attendanceRes, coursesRes, studentsRes, userRes] = await Promise.all([
-          fetch('/api/attendance'),
-          fetch('/api/courses'),
-          fetch('/api/students'),
-          fetch('/api/me'),
-        ]);
-
-        const [attendanceData, coursesData, studentsData, userData] = await Promise.all([
-          attendanceRes.json(),
-          coursesRes.json(),
-          studentsRes.json(),
-          userRes.json(),
-        ]);
-
-        setAttendanceRecords(attendanceData);
-        setCourses(coursesData);
-        setStudents(studentsData);
-        setCurrentUserRole(userData.role);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-      }
+    const handleCheckIn = (data: StudentCheckInPayload) => {
+        if (isQrModalOpen && data.course.id === selectedCourseForQr?.id) {
+            setLiveCheckedInStudents(prev => {
+                if (prev.some(s => s.id === data.student.id)) {
+                    return prev;
+                }
+                return [...prev, data.student].sort((a,b) => a.name.localeCompare(b.name));
+            });
+        }
     };
+    
+    eventEmitter.subscribe<StudentCheckInPayload>('studentCheckedIn', handleCheckIn);
 
-    fetchData();
-  }, []);
+    return () => {
+        eventEmitter.unsubscribe<StudentCheckInPayload>('studentCheckedIn', handleCheckIn);
+    };
+  }, [isQrModalOpen, selectedCourseForQr]);
 
-  const canGenerateQr = currentUserRole === 'FACULTY' || currentUserRole === 'ADMINISTRATOR';
 
-  // Filter courses based on role
+  // For QR generation, faculty can only select their own courses
   const myCourses = useMemo(() => {
-    if (currentUserRole === 'ADMINISTRATOR') return courses;
-    if (currentUserRole === 'FACULTY') {
-      return courses.filter(c => c.teacherId === FACULTY_ID);
+    if (currentUserRole === Role.ADMINISTRATOR) return MOCK_COURSES;
+    if (currentUserRole === Role.FACULTY) {
+      return MOCK_COURSES.filter(c => c.teacherId === FACULTY_ID);
     }
     return [];
-  }, [courses, currentUserRole]);
+  }, [currentUserRole]);
 
-  const handleCourseSelectionForQr = (courseId) => {
+  const handleCourseSelectionForQr = (courseId: string) => {
     setQrCourseSelection(courseId);
 
     if (!courseId) {
@@ -71,28 +63,29 @@ const AttendanceView = () => {
       return;
     }
 
-    const course = courses.find(c => c.id === courseId);
+    const course = MOCK_COURSES.find(c => c.id === courseId);
     if (course) {
       setLiveCheckedInStudents([]); // Reset for new session
       setSelectedCourseForQr(course);
       setIsQrModalOpen(true);
     }
   };
-
+  
   const handleCloseQrModal = () => {
     setIsQrModalOpen(false);
     setSelectedCourseForQr(null);
-    setQrCourseSelection('');
+    setQrCourseSelection(''); // Reset dropdown to placeholder
   };
 
   const totalStudentsInCourse = useMemo(() => {
     if (!selectedCourseForQr) return 0;
-    return students.filter(student =>
-      student.courses?.some(course => course.id === selectedCourseForQr.id)
+    return MOCK_STUDENT_DATA.filter(student => 
+      student.courses.some(course => course.id === selectedCourseForQr.id)
     ).length;
-  }, [selectedCourseForQr, students]);
+  }, [selectedCourseForQr]);
 
-  const handleStatusChange = (recordId, newStatus) => {
+
+  const handleStatusChange = (recordId: string, newStatus: AttendanceStatus) => {
     setAttendanceRecords(prevRecords =>
       prevRecords.map(record =>
         record.id === recordId ? { ...record, status: newStatus } : record
@@ -101,19 +94,20 @@ const AttendanceView = () => {
   };
 
   const coursesByDepartment = useMemo(() => {
-    if (departmentFilter === 'All') return courses;
-    return courses.filter(c => c.department === departmentFilter);
-  }, [departmentFilter, courses]);
+    if (departmentFilter === 'All') return MOCK_COURSES;
+    return MOCK_COURSES.filter(c => c.department === departmentFilter);
+  }, [departmentFilter]);
 
-  useEffect(() => {
+  // Reset course filter if it's no longer valid for the selected department
+  React.useEffect(() => {
     if (!coursesByDepartment.some(c => c.id === courseFilter)) {
-      setCourseFilter('All');
+        setCourseFilter('All');
     }
   }, [coursesByDepartment, courseFilter]);
 
   const displayData = useMemo(() => {
-    const studentMap = new Map(students.map(s => [s.id, s]));
-    const courseMap = new Map(courses.map(c => [c.id, c]));
+    const studentMap = new Map(MOCK_STUDENT_DATA.map(s => [s.id, s]));
+    const courseMap = new Map(MOCK_COURSES.map(c => [c.id, c]));
 
     return attendanceRecords
       .map(record => {
@@ -127,16 +121,16 @@ const AttendanceView = () => {
           department: course.department,
         };
       })
-      .filter(record => {
+      .filter((record): record is Exclude<typeof record, null> => {
         if (!record) return false;
         const matchesDate = record.date === selectedDate;
         const matchesDept = departmentFilter === 'All' || record.department === departmentFilter;
         const matchesCourse = courseFilter === 'All' || record.courseId === courseFilter;
-        const matchesStatus = record.status || 'All';
-        return matchesDate && matchesDept && matchesCourse;
+        const matchesStatus = statusFilter === 'All' || record.status === statusFilter;
+        return matchesDate && matchesDept && matchesCourse && matchesStatus;
       })
       .sort((a,b) => a.studentName.localeCompare(b.studentName));
-  }, [attendanceRecords, students, courses, selectedDate, departmentFilter, courseFilter]);
+  }, [attendanceRecords, selectedDate, departmentFilter, courseFilter, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -144,27 +138,27 @@ const AttendanceView = () => {
       <p className="text-slate-500">Monitor and manage student attendance records for daily classes.</p>
 
       {canGenerateQr && (
-        <div className="bg-white p-4 rounded-xl shadow-md">
-          <label htmlFor="qr-course-select" className="font-semibold text-slate-800 mb-2 block">
-            Start Live QR Session
-          </label>
-          <p className="text-sm text-slate-500 mb-3">Select a course to instantly generate a time-limited QR code for attendance.</p>
-          <select
-            id="qr-course-select"
-            value={qrCourseSelection}
-            onChange={(e) => handleCourseSelectionForQr(e.target.value)}
-            className="w-full sm:max-w-md px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-            aria-label="Select a course to start a QR session"
-            disabled={myCourses.length === 0}
-          >
-            <option value="" disabled>Select a course...</option>
-            {myCourses.length > 0 ? (
-              myCourses.map(course => <option key={course.id} value={course.id}>{course.name}</option>)
-            ) : (
-              <option disabled>No courses assigned</option>
-            )}
-          </select>
-        </div>
+          <div className="bg-white p-4 rounded-xl shadow-md">
+              <label htmlFor="qr-course-select" className="font-semibold text-slate-800 mb-2 block">
+                Start Live QR Session
+              </label>
+              <p className="text-sm text-slate-500 mb-3">Select a course to instantly generate a time-limited QR code for attendance.</p>
+              <select
+                id="qr-course-select"
+                value={qrCourseSelection}
+                onChange={(e) => handleCourseSelectionForQr(e.target.value)}
+                className="w-full sm:max-w-md px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                aria-label="Select a course to start a QR session"
+                disabled={myCourses.length === 0}
+              >
+                  <option value="" disabled>Select a course...</option>
+                  {myCourses.length > 0 ? (
+                      myCourses.map(course => <option key={course.id} value={course.id}>{course.name}</option>)
+                  ) : (
+                      <option disabled>No courses assigned</option>
+                  )}
+              </select>
+          </div>
       )}
 
       <div className="bg-white p-4 rounded-xl shadow-md sticky top-0 z-10">
@@ -182,42 +176,43 @@ const AttendanceView = () => {
           <div>
             <label htmlFor="dept-filter" className="block text-sm font-medium text-slate-700 mb-1">Department</label>
             <select
-              id="dept-filter"
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                id="dept-filter"
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             >
-              <option value="All">All Departments</option>
-              {/* Replace with actual department values if you have API */}
+                <option value="All">All Departments</option>
+                {MOCK_DEPARTMENTS.map(dep => <option key={dep.id} value={dep.name}>{dep.name}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="course-filter" className="block text-sm font-medium text-slate-700 mb-1">Course</label>
             <select
-              id="course-filter"
-              value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-              disabled={departmentFilter !== 'All' && coursesByDepartment.length === 0}
+                id="course-filter"
+                value={courseFilter}
+                onChange={(e) => setCourseFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                disabled={departmentFilter !== 'All' && coursesByDepartment.length === 0}
             >
-              <option value="All">All Courses</option>
-              {coursesByDepartment.map(course => <option key={course.id} value={course.id}>{course.name}</option>)}
+                <option value="All">All Courses</option>
+                {coursesByDepartment.map(course => <option key={course.id} value={course.id}>{course.name}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="status-filter" className="block text-sm font-medium text-slate-700 mb-1">Status</label>
             <select
-              id="status-filter"
-              value={'All'} // You can add state for status filter
-              onChange={() => {}}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                id="status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             >
-              <option value="All">All Statuses</option>
+                <option value="All">All Statuses</option>
+                {Object.values(AttendanceStatus).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
         </div>
       </div>
-
+      
       <AttendanceTable
         records={displayData}
         onStatusChange={handleStatusChange}
