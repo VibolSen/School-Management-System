@@ -22,7 +22,7 @@ const CourseManagementView = () => {
         setLoading(true);
         const [coursesRes, teachersRes, departmentsRes] = await Promise.all([
           fetch("/api/courses"),
-          fetch("/api/users?role=teacher"),
+          fetch("/api/users?role=Teacher"),
           fetch("/api/departments"),
         ]);
 
