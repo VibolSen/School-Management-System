@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import LeaveRequestTable from "@/components/LeaveRequestTable";
-import RequestLeaveModal from "@/components/RequestLeaveModal";
+import LeaveRequestTable from "@/components/leave/LeaveRequestTable";
+import RequestLeaveModal from "@/components/leave/RequestLeaveModal";
 import ConfirmationModal from "@/components/e-library/ConfirmationModal";
 import { MOCK_LEAVE_REQUESTS, MOCK_STAFF_DATA } from "@/lib/constants";
 import type { LeaveRequest } from "@/lib/types";
@@ -15,12 +15,19 @@ type ConfirmationInfo = {
 };
 
 const LeaveManagementView: React.FC = () => {
-  const { currentUserRole } = useUser();
+  const { user } = useUser();
+
   const [leaveRequests, setLeaveRequests] =
     useState<LeaveRequest[]>(MOCK_LEAVE_REQUESTS);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [confirmationInfo, setConfirmationInfo] =
     useState<ConfirmationInfo | null>(null);
+
+  if (!user) {
+    return <p className="text-slate-500">Loading user information...</p>;
+  }
+
+  const currentUserRole: Role = user.role as Role; // safe because user exists
 
   const handleApplyClick = () => {
     setIsRequestModalOpen(true);
@@ -36,8 +43,6 @@ const LeaveManagementView: React.FC = () => {
       "id" | "staffId" | "staffName" | "status" | "requestDate"
     >
   ) => {
-    // In a real app, the current user would be known from auth.
-    // Here, we'll just assign it to a sample faculty member.
     const currentUser =
       MOCK_STAFF_DATA.find((s) => s.role === currentUserRole) ||
       MOCK_STAFF_DATA[0];

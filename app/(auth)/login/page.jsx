@@ -38,15 +38,15 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
       }
 
-      // Get role name safely and normalize case
-      const roleId = data?.user?.role?.id?.toLowerCase() || "";
+      // ✅ CORRECT: Check role NAME instead of ID
+      const roleName = data?.user?.role?.name?.toLowerCase() || "";
 
-      if (roleId === "students")
-        router.push("/student/dashboard"); // plural route
-      else if (roleId === "admin") router.push("/admin/dashboard");
-      else if (roleId === "hr") router.push("/hr/dashboard");
-      else if (roleId === "faculty") router.push("/faculty/dashboard");
-      else if (roleId === "teacher") router.push("/teachers/dashboard");
+      // Route based on role name
+      if (roleName === "students") router.push("/student/dashboard");
+      else if (roleName === "admin") router.push("/admin/dashboard");
+      else if (roleName === "hr") router.push("/hr/dashboard");
+      else if (roleName === "faculty") router.push("/faculty/dashboard");
+      else if (roleName === "teacher") router.push("/teachers/dashboard");
       else router.push("/");
     } catch (err) {
       console.error("Login error:", err);

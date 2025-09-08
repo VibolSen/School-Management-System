@@ -1,5 +1,5 @@
 "use client";
-import React, { lazy } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -61,52 +61,52 @@ const TEACHER_NAV_ITEMS = [
   {
     label: "Dashboard",
     icon: <FiHome className="w-5 h-5" />,
-    href: "/teacher/dashboard",
+    href: "/teachers/dashboard",
   },
   {
-    label: "Students",
+    label: "My Students",
     icon: <FiUsers className="w-5 h-5" />,
-    href: "/teacher/students",
+    href: "/teachers/students",
   },
   {
-    label: "Courses",
+    label: "My Courses",
     icon: <FiBook className="w-5 h-5" />,
-    href: "/teacher/courses",
+    href: "/teachers/courses",
   },
   {
     label: "Assignments",
     icon: <FiClipboard className="w-5 h-5" />,
-    href: "/teacher/assignments",
+    href: "/teachers/assignment",
   },
   {
     label: "Course Analytics",
     icon: <FiBarChart2 className="w-5 h-5" />,
-    href: "/teacher/course-analytics",
+    href: "/teachers/course-analytics",
   },
   {
     label: "Student Performance",
     icon: <FiTrendingUp className="w-5 h-5" />,
-    href: "/teacher/student-performance",
+    href: "/teachers/student-performance",
   },
   {
     label: "Attendance",
     icon: <FiCalendar className="w-5 h-5" />,
-    href: "/teacher/attendance",
+    href: "/teachers/attendance",
   },
   {
     label: "E-Library",
     icon: <FiBookOpen className="w-5 h-5" />,
-    href: "/teacher/e-library",
+    href: "/teachers/e-library",
   },
   {
     label: "Leave",
     icon: <FiCalendar className="w-5 h-5" />,
-    href: "/teacher/leave",
+    href: "/teachers/leave",
   },
   {
     label: "Settings",
     icon: <FiSettings className="w-5 h-5" />,
-    href: "/teacher/settings",
+    href: "/teachers/settings",
   },
 ];
 
@@ -174,17 +174,6 @@ export default function TeacherSidebar({
             ))}
           </ul>
         </nav>
-
-        {/* Footer / Settings */}
-        <div className="px-2 py-4 border-t border-blue-800">
-          <NavLink
-            icon={<FiSettings className="w-5 h-5" />}
-            label="Settings"
-            href="/teacher/settings"
-            isActive={pathname === "/teacher/settings"}
-            isCollapsed={isCollapsed}
-          />
-        </div>
       </aside>
     </>
   );

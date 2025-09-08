@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useUser } from "@/context/UserContext";
 import { Role, SubmissionStatus } from "@/lib/types";
 import type { Assignment, Submission, Course } from "@/lib/types";
 import {
@@ -468,19 +467,6 @@ const StudentAssignments: React.FC = () => {
   );
 };
 
-// --- Main View Component ---
-const AssignmentsView: React.FC = () => {
-  const { currentUserRole } = useUser();
 
-  switch (currentUserRole) {
-    case Role.FACULTY:
-      return <FacultyAssignments />;
-    case Role.STUDENT:
-      return <StudentAssignments />;
-    default:
-      // Admins and HR don't have an assignments view
-      return <PlaceholderView title="Assignments Not Applicable" />;
-  }
-};
+export default StudentAssignments;
 
-export default AssignmentsView;

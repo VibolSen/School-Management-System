@@ -23,7 +23,7 @@ import {
   MOCK_COURSES,
 } from "@/lib/constants";
 import { Department, Role, AttendanceStatus } from "@/lib/types";
-import DashboardCard from "@/components/DashboardCard";
+import DashboardCard from "@/components/dashboard/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import BriefcaseIcon from "@/components/icons/BriefcaseIcon";
 import LibraryIcon from "@/components/icons/LibraryIcon";

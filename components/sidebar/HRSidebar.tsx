@@ -13,7 +13,7 @@ import {
   FiChevronRight,
   FiUsers,
 } from "react-icons/fi";
-import DashboardCard from "@/components/DashboardCard";
+import DashboardCard from "@/components/dashboard/DashboardCard";
 import { MOCK_STAFF_DATA } from "@/lib/constants";
 import {
   BarChart,

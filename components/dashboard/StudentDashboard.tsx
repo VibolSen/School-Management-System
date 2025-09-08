@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import DashboardCard from "@/components/DashboardCard";
+import DashboardCard from "@/components/dashboard/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import BookOpenIcon from "@/components/icons/BookOpenIcon";
 import ChartBarIcon from "@/components/icons/ChartBarIcon";

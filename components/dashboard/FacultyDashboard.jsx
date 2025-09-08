@@ -10,12 +10,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import DashboardCard from "@/components/DashboardCard";
+import DashboardCard from "@/components/dashboard/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import BookOpenIcon from "@/components/icons/BookOpenIcon";
 import ChartBarIcon from "@/components/icons/ChartBarIcon";
 import ClockIcon from "@/components/icons/ClockIcon";
-
 
 const FacultyDashboard = ({ loggedInUser }) => {
   const [courses, setCourses] = useState([]);
@@ -27,34 +26,32 @@ const FacultyDashboard = ({ loggedInUser }) => {
 
   const FACULTY_ID = loggedInUser.id; // ✅ safe now
 
+  // Fetch all courses
+  const fetchCourses = async () => {
+    try {
+      const res = await fetch("/api/courses");
+      if (!res.ok) throw new Error("Failed to fetch courses");
+      const data = await res.json();
+      setCourses(data);
+    } catch (err) {
+      console.error(err);
+      setCourses([]);
+    }
+  };
 
- // Fetch all courses
- const fetchCourses = async () => {
-  try {
-    const res = await fetch("/api/courses");
-    if (!res.ok) throw new Error("Failed to fetch courses");
-    const data = await res.json();
-    setCourses(data);
-  } catch (err) {
-    console.error(err);
-    setCourses([]);
-  }
-};
-
- // Fetch real users (students)
- const fetchUsers = async () => {
-  try {
-    const res = await fetch("/api/users?role=STUDENT"); // optional: filter by role
-    if (!res.ok) throw new Error("Failed to fetch users");
-    const data = await res.json();
-    // console.log("users:", data); // log fetched students
-    setUsers(data);
-  } catch (err) {
-    console.error(err);
-    setUsers([]);
-  }
-};
-
+  // Fetch real users (students)
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/users?role=STUDENT"); // optional: filter by role
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const data = await res.json();
+      // console.log("users:", data); // log fetched students
+      setUsers(data);
+    } catch (err) {
+      console.error(err);
+      setUsers([]);
+    }
+  };
 
   // Fetch attendance if available via API
   const fetchAttendance = async () => {
@@ -75,15 +72,12 @@ const FacultyDashboard = ({ loggedInUser }) => {
     fetchAttendance();
   }, []);
 
-
   const myCourses = useMemo(
     () => courses.filter((c) => c.teacherId === FACULTY_ID),
     [courses, FACULTY_ID]
   );
-  
-  const myCourseIds = useMemo(() => myCourses.map((c) => c.id), [myCourses]);
 
-  
+  const myCourseIds = useMemo(() => myCourses.map((c) => c.id), [myCourses]);
 
   // Today's attendance
   const todaysAttendanceRate = useMemo(() => {
@@ -117,7 +111,8 @@ const FacultyDashboard = ({ loggedInUser }) => {
       const courseRecords = attendance.filter(
         (r) => r.date === todayString && r.courseId === course.id
       );
-      if (courseRecords.length === 0) return { name: course.name, "Attendance Rate": 0 };
+      if (courseRecords.length === 0)
+        return { name: course.name, "Attendance Rate": 0 };
 
       const presentCount = courseRecords.filter(
         (r) => r.status === "PRESENT" || r.status === "LATE"
@@ -130,13 +125,15 @@ const FacultyDashboard = ({ loggedInUser }) => {
   const myStudentsCount = useMemo(() => {
     const studentIds = new Set();
     users.forEach((student) => {
-      if (Array.isArray(student.courses) && student.courses.some(course => myCourseIds.includes(course.id))) {
+      if (
+        Array.isArray(student.courses) &&
+        student.courses.some((course) => myCourseIds.includes(course.id))
+      ) {
         studentIds.add(student.id);
       }
     });
     return studentIds.size;
   }, [users, myCourseIds]);
-  
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -177,7 +174,11 @@ const FacultyDashboard = ({ loggedInUser }) => {
               <XAxis dataKey="name" fontSize={12} />
               <YAxis unit="%" />
               <Tooltip />
-              <Bar dataKey="Attendance Rate" fill="#3b82f6" name="Attendance Rate" />
+              <Bar
+                dataKey="Attendance Rate"
+                fill="#3b82f6"
+                name="Attendance Rate"
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -195,7 +196,9 @@ const FacultyDashboard = ({ loggedInUser }) => {
                       <ClockIcon />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-700">{course.name}</p>
+                      <p className="font-semibold text-slate-700">
+                        {course.name}
+                      </p>
                       <p className="text-sm text-slate-500">{course.time}</p>
                     </div>
                   </li>

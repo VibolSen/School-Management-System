@@ -1,6 +1,6 @@
 "use client";
 import { useState, ReactNode } from "react";
-import Header from "../../components/Header";
+import Header from "../../components/nav/Header";
 import FacultySidebar from "@/components/sidebar/FacultySidebar";
 
 interface FacultyLayoutProps {

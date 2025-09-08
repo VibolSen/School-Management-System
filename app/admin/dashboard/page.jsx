@@ -1,10 +1,9 @@
-import AdministratorDashboard from "@/components/admin/AdministratorDashboard";
+import AdministratorDashboard from "@/components/dashboard/AdministratorDashboard";
 
-export default function AdminDashboardPage (){
+export default function AdminDashboardPage() {
   return (
     <div>
       <AdministratorDashboard />
     </div>
   );
-};
-
+}

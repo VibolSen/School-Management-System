@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import DashboardCard from "@/components/DashboardCard";
+import DashboardCard from "@/components/dashboard/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import BriefcaseIcon from "@/components/icons/BriefcaseIcon";
 import CalendarIcon from "@/components/icons/CalendarIcon";
@@ -62,9 +62,11 @@ export default function AdministratorDashboard() {
   const { users, stats, attendance } = dashboardData;
 
   // ===== Stats Calculations =====
-  const totalEnrolledStudents = users.filter(u => u.roleId === "students").length;
+  const totalEnrolledStudents = users.filter(
+    (u) => u.roleId === "students"
+  ).length;
   const staffRoles = ["teacher", "admin", "hr", "faculty"];
-  const totalStaff = users.filter(u => staffRoles.includes(u.roleId)).length;
+  const totalStaff = users.filter((u) => staffRoles.includes(u.roleId)).length;
   const staffOnLeave = 0; // no status info currently
 
   const attendanceData =
@@ -156,18 +158,21 @@ export default function AdministratorDashboard() {
           </h2>
           <ul className="space-y-4">
             {users
-              .filter(u => staffRoles.includes(u.roleId))
+              .filter((u) => staffRoles.includes(u.roleId))
               .sort(
                 (a, b) =>
                   new Date(b.hireDate || 0).getTime() -
                   new Date(a.hireDate || 0).getTime()
               )
               .slice(0, 5)
-              .map(staff => (
+              .map((staff) => (
                 <li key={staff.id} className="flex items-center space-x-3">
                   <img
                     className="h-10 w-10 rounded-full"
-                    src={staff.image || `https://picsum.photos/seed/${staff.id}/100`}
+                    src={
+                      staff.image ||
+                      `https://picsum.photos/seed/${staff.id}/100`
+                    }
                     alt={staff.name}
                   />
                   <div>

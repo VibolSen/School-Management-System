@@ -1,13 +1,13 @@
 "use client";
 import { useState, ReactNode } from "react";
-import Header from "../../components/Header";
-import StudentSidebar from "../../components/sidebar/StudentSidebar";
+import Header from "../../components/nav/Header";
+import TeacherSidebar from "../../components/sidebar/TeacherSidebar";
 
-interface StudentLayoutProps {
+interface TeacherLayoutProps {
   children: ReactNode;
 }
 
-export default function StudentLayout({ children }: StudentLayoutProps) {
+export default function TeacherLayout({ children }: TeacherLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -15,7 +15,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <StudentSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <TeacherSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">

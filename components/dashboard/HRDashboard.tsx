@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import DashboardCard from "@/components/DashboardCard";
+import DashboardCard from "@/components/dashboard/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import BriefcaseIcon from "@/components/icons/BriefcaseIcon";
 import { MOCK_STAFF_DATA } from "@/lib/constants";

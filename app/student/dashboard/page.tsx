@@ -1,10 +1,10 @@
-import StudentDashboard from "@/components/StudentDashboard";
+import StudentDashboard from "@/components/dashboard/StudentDashboard";
 import React from "react";
 
 const StudentDashboardPage = (): JSX.Element => {
   return (
     <div>
-      <StudentDashboard />      
+      <StudentDashboard />
     </div>
   );
 };

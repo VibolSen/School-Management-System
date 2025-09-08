@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import FacultyDashboard from "@/components/FacultyDashboard";
+import FacultyDashboard from "@/components/dashboard/FacultyDashboard";
 
 const FacultyDashboardPage = () => {
   const [loggedInUser, setLoggedInUser] = useState(null);

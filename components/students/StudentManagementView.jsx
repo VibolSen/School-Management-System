@@ -174,9 +174,6 @@ export default function StudentManagementView() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-slate-800">Student Management</h1>
-        <button onClick={handleAddClick} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-          Add New Student
-        </button>
       </div>
 
       <StudentTable
