@@ -1,7 +1,27 @@
+"use client";
+import { useState, useEffect , useRef} from "react";
 import Link from "next/link";
-
+import { ChevronDown } from "lucide-react"
 
 export default function Navbar() {
+  const [courses, setCourses] = useState([]);
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null); 
+
+  useEffect(() => {
+    async function fetchCourses() {
+      try {
+        const res = await fetch("/api/courses");
+        if (!res.ok) throw new Error("Failed to fetch courses");
+        const data = await res.json();
+        setCourses(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchCourses();
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md shadow-sm">
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -22,10 +42,47 @@ export default function Navbar() {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center space-x-8">
-          <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-          <Link href="/courses" className="hover:text-foreground transition-colors">Courses</Link>
-          <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
-          <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+          <Link href="/" className="hover:text-foreground transition-colors">
+            Home
+          </Link>
+
+{/* Courses Dropdown */}
+<div className="relative" ref={dropdownRef}>
+  <button
+    onClick={() => setOpen((prev) => !prev)}
+    className="hover:text-foreground transition-colors flex items-center gap-1"
+  >
+    Courses
+    <ChevronDown
+      className={`w-4 h-4 transition-transform duration-500 ${
+        open ? "rotate-180" : "rotate-0"
+      }`}
+    />
+  </button>
+
+  {open && courses.length > 0 && (
+    <div className="absolute top-full left-0 mt-8 w-48 bg-white shadow-lg rounded-2xl py-2">
+      {courses.map((course) => (
+        <Link
+          key={course.id}
+          href={`/courses/${course.slug}`}
+          className="block px-4 py-2 hover:bg-gray-100 text-black transition-colors"
+          onClick={() => setOpen(false)} // close dropdown after clicking
+        >
+          {course.title}
+        </Link>
+      ))}
+    </div>
+  )}
+</div>
+
+
+          <Link href="/about" className="hover:text-foreground transition-colors">
+            About
+          </Link>
+          <Link href="/contact" className="hover:text-foreground transition-colors">
+            Contact
+          </Link>
         </nav>
 
         {/* Auth Buttons */}
