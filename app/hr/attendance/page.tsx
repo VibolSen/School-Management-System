@@ -1,4 +1,4 @@
-import AttendanceView from "@/components/AttendanceView";
+import AttendanceView from "@/components/attendance/AttendanceView";
 
 export default function AttendancePage() {
   return <AttendanceView />;
