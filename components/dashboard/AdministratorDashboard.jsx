@@ -37,7 +37,8 @@ export default function AdministratorDashboard() {
   // Fetch logged-in user
   async function fetchCurrentUser() {
     try {
-      const token = localStorage.getItem("token"); // assume you store JWT in localStorage
+      const token = localStorage.getItem("token");
+      if (!token) return;
       const res = await fetch("/api/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -59,15 +60,23 @@ export default function AdministratorDashboard() {
   if (!dashboardData)
     return <p className="text-red-500">Failed to load dashboard data.</p>;
 
-  const { users, stats, attendance } = dashboardData;
+  const { users, attendance } = dashboardData;
 
   // ===== Stats Calculations =====
   const totalEnrolledStudents = users.filter(
-    (u) => u.roleId === "students"
+    (u) => u.role?.name === "Students"
   ).length;
+
   const staffRoles = ["teacher", "admin", "hr", "faculty"];
-  const totalStaff = users.filter((u) => staffRoles.includes(u.roleId)).length;
-  const staffOnLeave = 0; // no status info currently
+  const totalStaff = users.filter((u) =>
+    staffRoles.includes(u.role?.name?.toLowerCase())
+  ).length;
+
+  const staffOnLeave = users.filter(
+    (u) =>
+      staffRoles.includes(u.role?.name?.toLowerCase()) &&
+      u.status === "On Leave"
+  ).length;
 
   const attendanceData =
     attendance && attendance.length > 0
@@ -158,11 +167,11 @@ export default function AdministratorDashboard() {
           </h2>
           <ul className="space-y-4">
             {users
-              .filter((u) => staffRoles.includes(u.roleId))
+              .filter((u) => staffRoles.includes(u.role?.name?.toLowerCase()))
               .sort(
                 (a, b) =>
-                  new Date(b.hireDate || 0).getTime() -
-                  new Date(a.hireDate || 0).getTime()
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime()
               )
               .slice(0, 5)
               .map((staff) => (

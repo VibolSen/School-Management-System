@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import QRCode from 'qrcode';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import QRCode from "qrcode";
 
 const QR_CODE_EXPIRATION_SECONDS = 120; // 2 minutes
 
@@ -9,50 +9,150 @@ const QRCodeGeneratorModal = ({
   isOpen,
   onClose,
   course,
-  checkedInStudents,
+  checkedInStudents, // Now directly used from state passed from parent
   totalStudents,
+  currentUserId,
+  onQrSessionCreated,
+  activeQrSessionId, // Receive the active session ID from parent
+  setLiveCheckedInStudents, // Function to update checked-in students in parent
 }) => {
   const canvasRef = useRef(null);
   const [timeLeft, setTimeLeft] = useState(QR_CODE_EXPIRATION_SECONDS);
+  const [qrCodeSession, setQrCodeSession] = useState(null); // State for the created QR session
+  const intervalRef = useRef(null);
 
+  // Function to generate a random QR code string
+  const generateRandomQrCodeString = () => {
+    return (
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15)
+    );
+  };
+
+  // 1. Create QR Code Session on modal open
   useEffect(() => {
-    if (isOpen && course) {
-      // Reset timer on open
-      setTimeLeft(QR_CODE_EXPIRATION_SECONDS);
+    const createQrSession = async () => {
+      if (isOpen && course && currentUserId && !qrCodeSession) {
+        const qrCodeString = generateRandomQrCodeString();
+        const expiresAt = new Date(
+          Date.now() + QR_CODE_EXPIRATION_SECONDS * 1000
+        ).toISOString();
 
-      const qrData = JSON.stringify({
-        courseId: course.id,
-        timestamp: Date.now(),
-      });
+        try {
+          const res = await fetch("/api/qrcode-sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              courseId: course.id,
+              createdById: currentUserId,
+              qrCode: qrCodeString,
+              expiresAt: expiresAt,
+            }),
+          });
 
-      QRCode.toCanvas(
-        canvasRef.current,
-        qrData,
-        { width: 256, errorCorrectionLevel: 'H' },
-        (error) => {
-          if (error) console.error('Error generating QR code:', error);
+          if (!res.ok)
+            throw new Error(
+              `Failed to create QR code session: ${res.statusText}`
+            );
+
+          const newSession = await res.json();
+          setQrCodeSession(newSession);
+          onQrSessionCreated(newSession.id); // Notify parent of the new session ID
+
+          // Generate QR code image with the actual session ID
+          QRCode.toCanvas(
+            canvasRef.current,
+            newSession.id, // Embed the session ID for students to scan
+            { width: 256, errorCorrectionLevel: "H" },
+            (error) => {
+              if (error) console.error("Error generating QR code:", error);
+            }
+          );
+
+          // Start the client-side timer
+          setTimeLeft(QR_CODE_EXPIRATION_SECONDS);
+          intervalRef.current = setInterval(() => {
+            setTimeLeft((prevTime) => {
+              if (prevTime <= 1) {
+                clearInterval(intervalRef.current);
+                return 0;
+              }
+              return prevTime - 1;
+            });
+          }, 1000);
+        } catch (error) {
+          console.error(
+            "Error creating QR session or generating QR code:",
+            error
+          );
+          // Handle error, maybe close modal or show an error message
+          onClose();
         }
-      );
+      }
+    };
 
-      const timer = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prevTime - 1;
-        });
-      }, 1000);
+    createQrSession();
 
-      return () => clearInterval(timer);
+    // Cleanup on unmount or close
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      setQrCodeSession(null); // Reset session state on close
+      setTimeLeft(QR_CODE_EXPIRATION_SECONDS); // Reset timer
+    };
+  }, [isOpen, course, currentUserId, onQrSessionCreated]); // Dependencies for session creation
+
+  // 2. Fetch live check-ins for the active QR session
+  useEffect(() => {
+    let checkInPollInterval;
+    if (isOpen && activeQrSessionId && timeLeft > 0) {
+      const fetchLiveCheckIns = async () => {
+        try {
+          const res = await fetch(
+            `/api/attendances?qrCodeSessionId=${activeQrSessionId}`
+          );
+          if (!res.ok)
+            throw new Error(
+              `Failed to fetch live attendances: ${res.statusText}`
+            );
+          const data = await res.json();
+          // Filter to only include checked-in students (e.g., status is 'Present')
+          // You'll need to adjust this based on your actual Attendance model and status names
+          const presentStudents = data.filter(
+            (att) => att.status?.name === "Present" || att.status === "Present"
+          ); // Assuming 'Present' is a status name or the direct status field
+          const studentIds = presentStudents.map((att) => att.studentId);
+
+          // Fetch student details for the checked-in IDs
+          const studentDetailsPromises = studentIds.map((id) =>
+            fetch(`/api/users?id=${id}`).then((res) => res.json())
+          );
+          const studentDetails = await Promise.all(studentDetailsPromises);
+          setLiveCheckedInStudents(studentDetails.filter((s) => s)); // Filter out any null/undefined
+        } catch (error) {
+          console.error("Error fetching live check-ins:", error);
+        }
+      };
+
+      // Poll for new check-ins every few seconds
+      checkInPollInterval = setInterval(fetchLiveCheckIns, 5000); // Poll every 5 seconds
+    } else if (checkInPollInterval) {
+      clearInterval(checkInPollInterval);
     }
-  }, [isOpen, course]);
 
-  if (!isOpen || !course) return null;
+    return () => {
+      if (checkInPollInterval) {
+        clearInterval(checkInPollInterval);
+      }
+    };
+  }, [isOpen, activeQrSessionId, timeLeft, setLiveCheckedInStudents]); // Dependencies for polling
 
   const isExpired = timeLeft <= 0;
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
+
+  if (!isOpen || !course) return null;
 
   return (
     <div
@@ -64,7 +164,10 @@ const QRCodeGeneratorModal = ({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm text-center animate-fade-in-scale">
         <div className="p-6 border-b">
           <div className="flex justify-between items-center">
-            <h2 id="qr-modal-title" className="text-xl font-bold text-slate-800">
+            <h2
+              id="qr-modal-title"
+              className="text-xl font-bold text-slate-800"
+            >
               Live Attendance
             </h2>
             <button
@@ -89,26 +192,25 @@ const QRCodeGeneratorModal = ({
           </div>
         </div>
         <div className="p-6 flex flex-col items-center">
-          <p className="font-semibold text-slate-700">{course.name}</p>
+          <p className="font-semibold text-slate-700">{course.title}</p>{" "}
+          {/* Use course.title */}
           <p className="text-sm text-slate-500 mb-4">
             Students can scan this code to mark their attendance.
           </p>
-
           <div
             className={`relative inline-block p-4 bg-slate-100 rounded-lg ${
-              isExpired ? 'opacity-20' : ''
+              isExpired || !qrCodeSession ? "opacity-20" : "" // Grey out if expired or no session yet
             }`}
           >
             <canvas ref={canvasRef} />
-            {isExpired && (
+            {(isExpired || !qrCodeSession) && (
               <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80">
                 <span className="px-4 py-2 text-lg font-bold text-white bg-red-600 rounded-md">
-                  EXPIRED
+                  {isExpired ? "EXPIRED" : "GENERATING..."}
                 </span>
               </div>
             )}
           </div>
-
           <div className="mt-4">
             {isExpired ? (
               <p className="text-red-600 font-bold text-lg">
@@ -116,14 +218,13 @@ const QRCodeGeneratorModal = ({
               </p>
             ) : (
               <p className="text-slate-600">
-                Code expires in:{' '}
+                Code expires in:{" "}
                 <span className="font-bold text-blue-600 text-lg">{`${minutes}:${
-                  seconds < 10 ? '0' : ''
+                  seconds < 10 ? "0" : ""
                 }${seconds}`}</span>
               </p>
             )}
           </div>
-
           <div className="mt-6 w-full">
             <div className="flex justify-between items-center text-sm font-semibold text-slate-600 mb-1 px-1">
               <span>Checked In</span>

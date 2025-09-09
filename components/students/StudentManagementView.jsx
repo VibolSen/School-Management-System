@@ -18,49 +18,58 @@ export default function StudentManagementView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // 1. Fetch all users
-      const resUsers = await fetch("/api/users");
-      if (!resUsers.ok) throw new Error(`HTTP error! status: ${resUsers.status}`);
-      const users = await resUsers.json();
+const fetchData = useCallback(async () => {
+  setIsLoading(true);
+  setError(null);
+  try {
+    // 1. Fetch all users
+    const resUsers = await fetch("/api/users");
+    if (!resUsers.ok) throw new Error(`HTTP error! status: ${resUsers.status}`);
+    const users = await resUsers.json();
 
-      // 2. Fetch roles
-      const resRoles = await fetch("/api/admin/roles");
-      if (!resRoles.ok) throw new Error(`HTTP error! status: ${resRoles.status}`);
-      const rolesData = await resRoles.json();
-      setRoles(rolesData);
+    // 2. Fetch roles
+    const resRoles = await fetch("/api/roles");
+    if (!resRoles.ok) throw new Error(`HTTP error! status: ${resRoles.status}`);
+    const rolesData = await resRoles.json();
+    setRoles(rolesData);
 
-      // 3. Fetch student statuses
-      const resStatuses = await fetch("/api/admin/student-statuses");
-      if (!resStatuses.ok) throw new Error(`HTTP error! status: ${resStatuses.status}`);
-      setStudentStatuses(await resStatuses.json());
+    // 🔑 Find the "Students" role ID
+    const studentRole = rolesData.find(
+      (role) => role.name?.toLowerCase() === "students"
+    );
 
-      // 4. Fetch courses
-      const resCourses = await fetch("/api/admin/courses");
-      if (!resCourses.ok) throw new Error(`HTTP error! status: ${resCourses.status}`);
-      setCourses(await resCourses.json());
+    // 3. Fetch student statuses
+    const resStatuses = await fetch("/api/student-statuses");
+    if (!resStatuses.ok)
+      throw new Error(`HTTP error! status: ${resStatuses.status}`);
+    setStudentStatuses(await resStatuses.json());
 
-      // 5. Filter students and attach role object
-      const studentsOnly = users
-        .filter(user => user.roleId === "students") // or your student role ID
-        .map(user => {
-          const role = rolesData.find(r => r.id === user.roleId) || { name: "N/A" };
-          return { ...user, role };
-        });
+    // 4. Fetch courses
+    const resCourses = await fetch("/api/courses");
+    if (!resCourses.ok)
+      throw new Error(`HTTP error! status: ${resCourses.status}`);
+    setCourses(await resCourses.json());
 
-      setStudents(studentsOnly);
+    // 5. Filter only students
+    const studentsOnly = users
+      .filter((user) => user.roleId === studentRole?.id) // ✅ compare with actual ID
+      .map((user) => {
+        const role = rolesData.find((r) => r.id === user.roleId) || {
+          name: "N/A",
+        };
+        return { ...user, role };
+      });
 
-    } catch (err) {
-      console.error("Failed to fetch data:", err);
-      setError("Failed to load data.");
-      showMessage("Failed to load data.", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    setStudents(studentsOnly);
+  } catch (err) {
+    console.error("Failed to fetch data:", err);
+    setError("Failed to load data.");
+    showMessage("Failed to load data.", "error");
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
+
 
   useEffect(() => {
     fetchData();

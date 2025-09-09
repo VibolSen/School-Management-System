@@ -35,10 +35,12 @@ export default function UserManagementView() {
     }
   }, []);
 
+  console.log("Users:", users);
+
   // Fetch roles from API
   const fetchRoles = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/roles");
+      const res = await fetch("/api/roles");
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setRoles(data);
