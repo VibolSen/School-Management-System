@@ -35,6 +35,8 @@ export default function UserManagementView() {
     }
   }, []);
 
+  console.log("Users:", users);
+
   // Fetch roles from API
   const fetchRoles = useCallback(async () => {
     try {
