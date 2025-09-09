@@ -66,6 +66,6 @@
     "app/student/attendance/page.jsx",
     "components/dashboard/TeacherDashboard.jsx",
     "app/teachers/assignment/page.jsx"
-, "app/faculty/e-library/page.jsx", "app/student/e-library/page.jsx", "components/dashboard/StudentDashboard.jsx", "components/ReportsView.jsx"  ],
+, "app/faculty/e-library/page.jsx", "app/student/e-library/page.jsx", "components/dashboard/StudentDashboard.jsx", "components/ReportsView.jsx", "app/hr/leave/page.jsx", "components/leave/LeaveManagementView.jsx"  ],
   "exclude": ["node_modules"]
 }
