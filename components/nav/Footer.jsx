@@ -5,12 +5,14 @@ export default function Footer() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">
-                    V
-                  </span>
-                </div>
-                <span className="font-bold text-xl">VSKILL</span>
+              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md ring-2 ring-primary/30">
+            <img
+              src="/logo/STEP.jpg"
+              alt="STEP Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+                <span className="font-bold text-xl">STEP</span>
               </div>
               <p className="text-muted-foreground text-sm">
                 Empowering learners worldwide with high-quality, accessible
