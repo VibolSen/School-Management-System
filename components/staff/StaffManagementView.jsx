@@ -26,7 +26,12 @@ export default function StaffManagementView() {
       const res = await fetch("/api/users");
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
-      const staffOnly = data.filter((user) => user.roleId !== "students");
+
+      // ✅ Filter out users with role.name === "Students"
+      const staffOnly = data.filter(
+        (user) => user.role?.name?.toLowerCase() !== "students"
+      );
+
       setStaffList(staffOnly);
     } catch (err) {
       console.error(err);
@@ -40,15 +45,20 @@ export default function StaffManagementView() {
   // Fetch roles from API
   const fetchRoles = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/roles");
+      const res = await fetch("/api/roles");
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
-      // Filter out student role for staff management
-      const staffRoles = data.filter((role) => role.id !== "students");
+
+      // ✅ Remove Students from role list
+      const staffRoles = data.filter(
+        (role) => role.name?.toLowerCase() !== "students"
+      );
+
       setRoles(staffRoles);
     } catch (err) {
       console.error(err);
-      // Fallback roles if API fails
+
+      // Fallback roles (no Students)
       setRoles([
         { id: "admin", name: "Admin" },
         { id: "faculty", name: "Faculty" },
@@ -57,6 +67,7 @@ export default function StaffManagementView() {
       ]);
     }
   }, []);
+
 
   // Fetch departments dynamically
   const fetchDepartments = useCallback(async () => {
@@ -183,6 +194,7 @@ export default function StaffManagementView() {
       handleCloseModal();
     }
   };
+
 
   if (isLoading && staffList.length === 0) {
     return <p className="text-center py-10">Loading staff data...</p>;
