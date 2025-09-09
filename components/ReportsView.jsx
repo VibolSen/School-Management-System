@@ -33,10 +33,10 @@ import AISummaryCard from "@/components/AISummaryCard";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
-const ReportsView: React.FC = () => {
-  const [summary, setSummary] = useState<string | null>(null);
+const ReportsView = () => {
+  const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   const enrollmentByDept = useMemo(() => {
     const enrolledStudents = MOCK_STUDENT_DATA.filter(
@@ -68,9 +68,7 @@ const ReportsView: React.FC = () => {
   }, []);
 
   const attendanceTrend = useMemo(() => {
-    const attendanceByDate: {
-      [key: string]: { present: number; total: number };
-    } = {};
+    const attendanceByDate = {};
     MOCK_ATTENDANCE_DATA.forEach((record) => {
       if (!attendanceByDate[record.date]) {
         attendanceByDate[record.date] = { present: 0, total: 0 };
@@ -151,7 +149,7 @@ const ReportsView: React.FC = () => {
       });
 
       setSummary(response.text ?? null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error generating AI summary:", err);
       setError(
         err.message ||
@@ -257,7 +255,7 @@ const ReportsView: React.FC = () => {
           <h2 className="text-xl font-semibold mb-4 text-slate-800">
             Staff Distribution by Role
           </h2>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="%100" height={300}>
             <PieChart>
               <Pie
                 data={staffByRole}

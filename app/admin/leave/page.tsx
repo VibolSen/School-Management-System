@@ -1,5 +1,12 @@
+"use client";
+
+import { UserProvider } from "@/context/UserContext";
 import LeaveManagementView from "@/components/leave/LeaveManagementView";
 
 export default function LeavePage() {
-  return <LeaveManagementView />;
+  return (
+    <UserProvider>
+      <LeaveManagementView />
+    </UserProvider>
+  );
 }

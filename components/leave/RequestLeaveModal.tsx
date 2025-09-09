@@ -1,6 +1,6 @@
 import React, { useState, FormEvent, useEffect } from 'react';
-import type { LeaveRequest } from '../types';
-import { LeaveType } from '../types';
+import type { LeaveRequest } from '@/lib/types';
+import { LeaveType } from '@/lib/types';
 
 interface RequestLeaveModalProps {
   isOpen: boolean;

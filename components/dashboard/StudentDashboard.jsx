@@ -14,7 +14,7 @@ import { AttendanceStatus } from "@/lib/types";
 
 const STUDENT_ID = "STU001"; // Alice Johnson
 
-const StudentDashboard: React.FC = () => {
+const StudentDashboard = () => {
   const myProfile = useMemo(
     () => MOCK_STUDENT_DATA.find((s) => s.id === STUDENT_ID),
     []

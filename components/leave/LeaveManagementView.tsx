@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import LeaveRequestTable from "@/components/leave/LeaveRequestTable";
 import RequestLeaveModal from "@/components/leave/RequestLeaveModal";
 import ConfirmationModal from "@/components/e-library/ConfirmationModal";
@@ -14,8 +14,13 @@ type ConfirmationInfo = {
   request: LeaveRequest;
 };
 
-const LeaveManagementView: React.FC = () => {
+const LeaveManagementView = () => {
   const { user } = useUser();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [leaveRequests, setLeaveRequests] =
     useState<LeaveRequest[]>(MOCK_LEAVE_REQUESTS);
@@ -23,11 +28,52 @@ const LeaveManagementView: React.FC = () => {
   const [confirmationInfo, setConfirmationInfo] =
     useState<ConfirmationInfo | null>(null);
 
-  if (!user) {
-    return <p className="text-slate-500">Loading user information...</p>;
+  // Show loading state during SSR
+  if (!isClient) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">
+              Leave Management
+            </h1>
+            <p className="text-slate-500">Loading...</p>
+          </div>
+          <button className="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold opacity-50 cursor-not-allowed">
+            Apply for Leave
+          </button>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <p className="text-slate-500">Loading leave requests...</p>
+        </div>
+      </div>
+    );
   }
 
-  const currentUserRole: Role = user.role as Role; // safe because user exists
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">
+              Leave Management
+            </h1>
+            <p className="text-slate-500">Loading user information...</p>
+          </div>
+          <button className="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold opacity-50 cursor-not-allowed">
+            Apply for Leave
+          </button>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <p className="text-slate-500">
+            Please wait while we load your information...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentUserRole: Role = user.role as Role;
 
   const handleApplyClick = () => {
     setIsRequestModalOpen(true);
