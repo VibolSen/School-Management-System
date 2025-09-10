@@ -4,10 +4,10 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import AttendanceTable from "./AttendanceTable";
 import QRCodeGeneratorModal from "./QRCodeGeneratorModal";
 
-const AttendanceView = () => {
+const AttendanceView = ({ loggedInUser }) => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [students, setStudents] = useState([]);
+  const [students, setStudents] = useState([]); // These are 'users' with role 'student'
   const [departments, setDepartments] = useState([]);
   const [attendanceStatuses, setAttendanceStatuses] = useState([]);
 
@@ -25,10 +25,11 @@ const AttendanceView = () => {
   const [currentQrSessionId, setCurrentQrSessionId] = useState(null); // New state to hold the active QR session ID
 
   // Hardcoded role for now (replace with real auth later)
-  const currentUserRole = "administrator"; // Assume 'administrator' or 'faculty' for now
-  const currentUserId = "654321098765432109876543"; // Placeholder for the user generating the QR code
-  const canGenerateQr =
-    currentUserRole === "faculty" || currentUserRole === "administrator";
+  const currentUserId = loggedInUser?.id;
+  const currentUserRole = loggedInUser?.role;
+const canGenerateQr =
+  loggedInUser.role.name === "faculty" || loggedInUser.role.name === "Admin";
+
 
   // -------------------------------
   // Fetch courses, users, departments, and attendance statuses
@@ -45,7 +46,7 @@ const AttendanceView = () => {
           ]);
 
         const coursesData = coursesRes.ok ? await coursesRes.json() : [];
-        const studentsData = usersRes.ok ? await usersRes.json() : [];
+        const usersData = usersRes.ok ? await usersRes.json() : []; // Renamed to usersData
         const departmentsData = departmentsRes.ok
           ? await departmentsRes.json()
           : [];
@@ -53,8 +54,8 @@ const AttendanceView = () => {
 
         setCourses(Array.isArray(coursesData) ? coursesData : []);
         setStudents(
-          Array.isArray(studentsData)
-            ? studentsData.filter((user) => user.role === "student")
+          Array.isArray(usersData)
+            ? usersData.filter((user) => user.role === "student")
             : []
         ); // Filter for students
         setDepartments(Array.isArray(departmentsData) ? departmentsData : []);
@@ -66,6 +67,7 @@ const AttendanceView = () => {
 
     fetchData();
   }, []);
+
 
   // -------------------------------
   // Fetch attendance records (to populate the table)
@@ -92,7 +94,7 @@ const AttendanceView = () => {
           if (status) params.append("statusId", status.id);
         }
 
-        const res = await fetch(`/api/attendance?${params.toString()}`);
+        const res = await fetch(`/api/attendances?${params.toString()}`); // Corrected API endpoint
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         setAttendanceRecords(Array.isArray(data) ? data : []);
@@ -102,8 +104,12 @@ const AttendanceView = () => {
       }
     };
 
-    if (departments.length > 0 && attendanceStatuses.length > 0) {
-      // Ensure dependencies are loaded
+    // Ensure dependencies are loaded before fetching
+    if (
+      departments.length > 0 &&
+      attendanceStatuses.length > 0 &&
+      courses.length > 0
+    ) {
       fetchAttendanceRecords();
     }
   }, [
@@ -113,6 +119,7 @@ const AttendanceView = () => {
     statusFilter,
     departments,
     attendanceStatuses,
+    courses, // Added courses to dependency array
   ]);
 
   // -------------------------------
@@ -124,6 +131,7 @@ const AttendanceView = () => {
       setIsQrModal(false);
       setSelectedCourseForQr(null);
       setCurrentQrSessionId(null);
+      setLiveCheckedInStudents([]); // Clear live checked-in students
       return;
     }
     const course = courses.find((c) => c.id === courseId);
@@ -139,9 +147,9 @@ const AttendanceView = () => {
     if (currentQrSessionId) {
       try {
         // Optionally update the session status to 'ended' or similar on the backend
-        // For now, we just close the modal.
+        // For now, we just close the modal and delete the session.
         await fetch(`/api/qrcode-sessions?id=${currentQrSessionId}`, {
-          method: "DELETE", // Or PUT to update status
+          method: "DELETE",
         });
       } catch (error) {
         console.error("Failed to delete/end QR session:", error);
@@ -151,6 +159,7 @@ const AttendanceView = () => {
     setSelectedCourseForQr(null);
     setQrCourseSelection("");
     setCurrentQrSessionId(null);
+    setLiveCheckedInStudents([]); // Clear live checked-in students on close
   };
 
   const handleQrSessionCreated = (sessionId) => {
@@ -162,6 +171,7 @@ const AttendanceView = () => {
   // -------------------------------
   const totalStudentsInCourse = useMemo(() => {
     if (!selectedCourseForQr || !Array.isArray(students)) return 0;
+    // Assuming a student object has a 'courses' array, and each course object in that array has an 'id'
     return students.filter(
       (student) =>
         Array.isArray(student.courses) &&
@@ -180,8 +190,9 @@ const AttendanceView = () => {
         return;
       }
 
-      const res = await fetch(`/api/attendance?id=${recordId}`, {
-        method: "PUT", // Assuming PUT for update by ID
+      const res = await fetch(`/api/attendances?id=${recordId}`, {
+        // Corrected API endpoint
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ statusId: statusObj.id }), // Send statusId
       });
@@ -192,7 +203,7 @@ const AttendanceView = () => {
       setAttendanceRecords((prev) =>
         prev.map((record) =>
           record.id === recordId
-            ? { ...record, status: newStatus, statusId: statusObj.id }
+            ? { ...record, status: { name: newStatus, id: statusObj.id } } // Update status object correctly
             : record
         )
       );
@@ -234,24 +245,28 @@ const AttendanceView = () => {
     const studentMap = new Map(students.map((s) => [s.id, s]));
     const courseMap = new Map(courses.map((c) => [c.id, c]));
     const statusMap = new Map(attendanceStatuses.map((s) => [s.id, s]));
+    const departmentMap = new Map(departments.map((d) => [d.id, d.name])); // Map for department names
 
     return attendanceRecords
       .map((record) => {
-        const student = studentMap.get(record.studentId);
+        const student = studentMap.get(record.userId); // Corrected to userId
         const course = courseMap.get(record.courseId);
         const status = statusMap.get(record.statusId);
         if (!student || !course || !status) return null;
+
+        const departmentName = departmentMap.get(course.departmentId) || "N/A"; // Get department name
+
         return {
           ...record,
-          studentName: student.name,
-          courseName: course.title, // Use course.title as per your schema
-          department: course.department, // This might need to come from the related department object if available
-          status: status.name, // Use status.name
+          studentName: `${student.firstName} ${student.lastName}`, // Assuming firstName and lastName
+          courseName: course.title,
+          department: departmentName,
+          status: status.name,
         };
       })
       .filter((record) => record !== null) // Filter out records that couldn't be mapped
       .sort((a, b) => a.studentName.localeCompare(b.studentName));
-  }, [attendanceRecords, students, courses, attendanceStatuses]);
+  }, [attendanceRecords, students, courses, attendanceStatuses, departments]);
 
   return (
     <div className="space-y-6">
@@ -406,10 +421,10 @@ const AttendanceView = () => {
         course={selectedCourseForQr}
         checkedInStudents={liveCheckedInStudents}
         totalStudents={totalStudentsInCourse}
-        currentUserId={currentUserId} // Pass current user ID for creating the session
-        onQrSessionCreated={handleQrSessionCreated} // Callback for when session is created
-        activeQrSessionId={currentQrSessionId} // Pass the active session ID
-        setLiveCheckedInStudents={setLiveCheckedInStudents} // Allow modal to update checked-in students
+        currentUserId={currentUserId} // now real user ID
+        onQrSessionCreated={handleQrSessionCreated}
+        activeQrSessionId={currentQrSessionId}
+        setLiveCheckedInStudents={setLiveCheckedInStudents}
       />
     </div>
   );
