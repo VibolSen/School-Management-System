@@ -133,7 +133,6 @@ export default function AdminSidebar({
   const isCollapsed = !isOpen;
   const pathname = usePathname();
 
-  // Load sidebar state from localStorage on component mount
   useEffect(() => {
     const savedState = localStorage.getItem("sidebarState");
     if (savedState !== null) {
@@ -141,7 +140,6 @@ export default function AdminSidebar({
     }
   }, []);
 
-  // Save sidebar state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("sidebarState", JSON.stringify(isOpen));
   }, [isOpen]);
@@ -152,7 +150,6 @@ export default function AdminSidebar({
 
   return (
     <>
-      {/* Overlay for mobile */}
       <div
         className={`fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity md:hidden ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -160,19 +157,13 @@ export default function AdminSidebar({
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Sidebar */}
       <aside
         className={`bg-blue-900 text-white flex flex-col fixed md:relative transition-all duration-300 ease-in-out z-40 h-full ${
           isOpen ? "w-64" : "w-16"
         } overflow-hidden`}
       >
-        {/* Header */}
-        <div
-          className={`flex items-center p-4 border-b border-blue-800 ${
-            isCollapsed ? "justify-center" : "justify-between"
-          }`}
-        >
-          {!isCollapsed && (
+        <div className="flex items-center p-4 border-b border-blue-800 h-16 relative">
+          {!isCollapsed ? (
             <div className="flex items-center">
               <svg
                 className="h-8 w-8 text-white"
@@ -189,12 +180,13 @@ export default function AdminSidebar({
               </svg>
               <h1 className="ml-2 text-xl font-bold">Admin Portal</h1>
             </div>
+          ) : (
+            <div className="w-8 h-8"></div>
           )}
+
           <button
             onClick={toggleSidebar}
-            className={`p-1 rounded-full bg-blue-800 hover:bg-blue-700 transition-colors ${
-              isCollapsed ? "absolute bottom-4 left-3" : ""
-            }`}
+            className="p-1 rounded-full bg-blue-800 hover:bg-blue-700 transition-colors absolute right-2"
             aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
           >
             {isOpen ? (
@@ -205,7 +197,6 @@ export default function AdminSidebar({
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-2 py-4 overflow-y-auto">
           <ul>
             {ADMIN_NAV_ITEMS.map((item) => (

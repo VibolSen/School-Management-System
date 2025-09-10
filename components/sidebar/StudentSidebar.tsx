@@ -1,3 +1,4 @@
+// StudentSidebar.tsx
 "use client";
 import React, { ReactNode } from "react";
 import Link from "next/link";
@@ -9,9 +10,11 @@ import {
   FiBookOpen,
   FiCode,
   FiSettings,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
+import { usePathname } from "next/navigation";
 
-// Define the props for NavLink component
 interface NavLinkProps {
   icon: ReactNode;
   label: string;
@@ -20,7 +23,6 @@ interface NavLinkProps {
   href: string;
 }
 
-// NavLink component - FIXED
 const NavLink: React.FC<NavLinkProps> = ({
   icon,
   label,
@@ -49,14 +51,12 @@ const NavLink: React.FC<NavLinkProps> = ({
   </li>
 );
 
-// Define the structure for navigation items
 interface NavItem {
   label: string;
   icon: ReactNode;
   href: string;
 }
 
-// Student navigation items
 const STUDENT_NAV_ITEMS: NavItem[] = [
   {
     label: "Dashboard",
@@ -90,9 +90,6 @@ const STUDENT_NAV_ITEMS: NavItem[] = [
   },
 ];
 
-import { usePathname } from "next/navigation";
-
-// Define the props for StudentSidebar component
 interface StudentSidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -107,7 +104,6 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
 
   return (
     <>
-      {/* Overlay for mobile */}
       <div
         className={`fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity md:hidden ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -115,39 +111,46 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Sidebar */}
       <aside
         className={`bg-blue-900 text-white flex flex-col transition-all duration-300 ease-in-out z-40 h-full ${
           isOpen ? "w-64" : "w-20"
         } overflow-hidden`}
       >
-        {/* Header / Logo */}
-        <div
-          className={`flex items-center p-4 border-b border-blue-800 ${
-            isCollapsed ? "justify-center" : "justify-between"
-          }`}
-        >
-          <div className="flex items-center">
-            <svg
-              className="h-8 w-8 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6.253v11.494m-5.22-8.242l10.44 4.99m-10.44-4.99l10.44 4.99M3 10.519l9-4.266 9 4.266"
-              />
-            </svg>
-            {!isCollapsed && (
+        <div className="flex items-center p-4 border-b border-blue-800 h-16 relative">
+          {!isCollapsed ? (
+            <div className="flex items-center">
+              <svg
+                className="h-8 w-8 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6.253v11.494m-5.22-8.242l10.44 4.99m-10.44-4.99l10.44 4.99M3 10.519l9-4.266 9 4.266"
+                />
+              </svg>
               <h1 className="ml-2 text-xl font-bold">Student Portal</h1>
+            </div>
+          ) : (
+            <div className="w-8 h-8"></div>
+          )}
+          
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-1 rounded-full bg-blue-800 hover:bg-blue-700 transition-colors absolute right-2"
+            aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            {isOpen ? (
+              <FiChevronLeft className="w-4 h-4" />
+            ) : (
+              <FiChevronRight className="w-4 h-4" />
             )}
-          </div>
+          </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-2 py-4">
           <ul>
             {STUDENT_NAV_ITEMS.map((item) => (
@@ -163,7 +166,6 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
           </ul>
         </nav>
 
-        {/* Footer / Settings */}
         <div className="px-2 py-4 border-t border-blue-800">
           <NavLink
             icon={<FiSettings className="w-5 h-5" />}

@@ -1,3 +1,4 @@
+// FacultySidebar.tsx
 "use client";
 import React, { lazy } from "react";
 import Link from "next/link";
@@ -12,6 +13,8 @@ import {
   FiClipboard,
   FiTrendingUp,
   FiSettings,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
 interface NavLinkProps {
@@ -27,7 +30,6 @@ interface FacultySidebarProps {
   setIsOpen: (open: boolean) => void;
 }
 
-// NavLink component - FIXED
 const NavLink = ({
   icon,
   label,
@@ -56,7 +58,6 @@ const NavLink = ({
   </li>
 );
 
-// Faculty navigation items
 const FACULTY_NAV_ITEMS = [
   {
     label: "Dashboard",
@@ -124,7 +125,6 @@ export default function FacultySidebar({
 
   return (
     <>
-      {/* Overlay for mobile */}
       <div
         className={`fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity md:hidden ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -132,39 +132,46 @@ export default function FacultySidebar({
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Sidebar */}
       <aside
         className={`bg-blue-900 text-white flex flex-col transition-all duration-300 ease-in-out z-40 h-full ${
           isOpen ? "w-64" : "w-20"
         } overflow-hidden`}
       >
-        {/* Header / Logo */}
-        <div
-          className={`flex items-center p-4 border-b border-blue-800 ${
-            isCollapsed ? "justify-center" : "justify-between"
-          }`}
-        >
-          <div className="flex items-center">
-            <svg
-              className="h-8 w-8 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6.253v11.494m-5.22-8.242l10.44 4.99m-10.44-4.99l10.44 4.99M3 10.519l9-4.266 9 4.266"
-              />
-            </svg>
-            {!isCollapsed && (
+        <div className="flex items-center p-4 border-b border-blue-800 h-16 relative">
+          {!isCollapsed ? (
+            <div className="flex items-center">
+              <svg
+                className="h-8 w-8 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6.253v11.494m-5.22-8.242l10.44 4.99m-10.44-4.99l10.44 4.99M3 10.519l9-4.266 9 4.266"
+                />
+              </svg>
               <h1 className="ml-2 text-xl font-bold">Faculty Portal</h1>
+            </div>
+          ) : (
+            <div className="w-8 h-8"></div>
+          )}
+          
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-1 rounded-full bg-blue-800 hover:bg-blue-700 transition-colors absolute right-2"
+            aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            {isOpen ? (
+              <FiChevronLeft className="w-4 h-4" />
+            ) : (
+              <FiChevronRight className="w-4 h-4" />
             )}
-          </div>
+          </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-2 py-4">
           <ul>
             {FACULTY_NAV_ITEMS.map((item) => (
@@ -180,7 +187,6 @@ export default function FacultySidebar({
           </ul>
         </nav>
 
-        {/* Footer / Settings */}
         <div className="px-2 py-4 border-t border-blue-800">
           <NavLink
             icon={<FiSettings className="w-5 h-5" />}
