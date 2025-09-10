@@ -78,6 +78,11 @@ const TEACHER_NAV_ITEMS = [
     icon: <FiClipboard className="w-5 h-5" />,
     href: "/teachers/assignment",
   },
+    {
+    label: "Exams",
+    icon: <FiClipboard className="w-5 h-5" />, // you can change to another icon if you prefer
+    href: "/teachers/exam",
+  },
   {
     label: "Course Analytics",
     icon: <FiBarChart2 className="w-5 h-5" />,
