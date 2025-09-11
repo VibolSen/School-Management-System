@@ -1,5 +1,5 @@
-import AssignmentView from "@/components/assigments/AssignmentView";
+import StudentDashboardView from "@/components/StudentDashboardView";
 
-export default function AssignmentPage() {
-  return <AssignmentView />;
+export default function StudentDashboardViewPage() {
+  return <StudentDashboardView />;
 }
