@@ -17,6 +17,7 @@ export async function GET(req) {
         include: {
           groupAssignment: { include: { group: true } },
           activity: { include: { course: { include: { department: true } } } },
+          student: true,
         },
       });
 
@@ -45,6 +46,7 @@ export async function GET(req) {
       include: {
         groupAssignment: { include: { group: true } },
         activity: { include: { course: { include: { department: true } } } },
+        student: true,
       },
     });
 
@@ -65,22 +67,55 @@ export async function POST(req) {
   try {
     const data = await req.json();
 
-    if (!data.activityId)
-      return new Response(JSON.stringify({ error: "activityId is required" }), {
-        status: 400,
-      });
-    if (!data.statusId)
+    // Minimal validation
+    if (!data.statusId) {
       return new Response(JSON.stringify({ error: "statusId is required" }), {
         status: 400,
       });
-    if (!data.groupId)
-      return new Response(JSON.stringify({ error: "groupId is required" }), {
-        status: 400,
+    }
+
+    // --- Check for existing assignment ---
+    if (data.studentId) {
+      // Individual assignment
+      const existingStudent = await prisma.studentAssignment.findFirst({
+        where: {
+          activityId: data.activityId || null,
+          studentId: data.studentId,
+        },
       });
 
+      if (existingStudent) {
+        return new Response(
+          JSON.stringify({
+            error: "This student already has an assignment for this activity",
+          }),
+          { status: 400 }
+        );
+      }
+    } else if (data.groupId) {
+      // Group assignment
+      const existingGroup = await prisma.studentAssignment.findFirst({
+        where: {
+          activityId: data.activityId || null,
+          groupAssignmentId: data.groupId,
+        },
+      });
+
+      if (existingGroup) {
+        return new Response(
+          JSON.stringify({
+            error: "This group already has an assignment for this activity",
+          }),
+          { status: 400 }
+        );
+      }
+    }
+
+    // --- Prepare payload ---
     const payload = {
-      activityId: data.activityId,
-      groupAssignmentId: data.groupId,
+      activityId: data.activityId || null,
+      groupAssignmentId: data.groupId || null,
+      studentId: data.studentId || null,
       statusId: data.statusId,
       submittedAt: data.submittedAt ? new Date(data.submittedAt) : null,
       content: data.content?.trim() || null,
@@ -89,11 +124,13 @@ export async function POST(req) {
       feedback: data.feedback?.trim() || null,
     };
 
+    // --- Create assignment ---
     const newAssignment = await prisma.studentAssignment.create({
       data: payload,
       include: {
         groupAssignment: { include: { group: true } },
         activity: { include: { course: { include: { department: true } } } },
+        student: true,
       },
     });
 
@@ -121,16 +158,19 @@ export async function PUT(req) {
       );
 
     const data = await req.json();
+
     const updateData = {
       statusId: data.statusId,
       submittedAt: data.submittedAt ? new Date(data.submittedAt) : null,
-      content: data.content || null,
-      fileUrl: data.fileUrl || null,
-      grade: data.grade ? parseFloat(data.grade) : null,
-      feedback: data.feedback || null,
+      content: data.content?.trim() || null,
+      fileUrl: data.fileUrl?.trim() || null,
+      grade: data.grade !== "" ? parseFloat(data.grade) : null,
+      feedback: data.feedback?.trim() || null,
     };
 
-    if (data.groupId) updateData.groupAssignmentId = data.groupId;
+    if (data.groupId !== undefined) updateData.groupAssignmentId = data.groupId;
+    if (data.activityId !== undefined) updateData.activityId = data.activityId;
+    if (data.studentId !== undefined) updateData.studentId = data.studentId;
 
     const updatedAssignment = await prisma.studentAssignment.update({
       where: { id },
@@ -138,6 +178,7 @@ export async function PUT(req) {
       include: {
         groupAssignment: { include: { group: true } },
         activity: { include: { course: { include: { department: true } } } },
+        student: true,
       },
     });
 
