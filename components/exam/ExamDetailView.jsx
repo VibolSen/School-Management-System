@@ -1,11 +1,26 @@
 // pages/index.js
 "use client";
 import Head from 'next/head';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AddExamModal from './AddExamModal'; // import the modal component
 
 export default function ExamManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch("/api/courses");
+        const data = await res.json();
+        setCourses(Array.isArray(data) ? data : []);
+      } catch {
+        setCourses([]);
+      }
+    };
+
+    fetchCourses();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
@@ -42,7 +57,7 @@ export default function ExamManagement() {
       </div>
 
       {/* AddExamModal */}
-      <AddExamModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <AddExamModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} courses={courses} />
     </div>
   );
 }

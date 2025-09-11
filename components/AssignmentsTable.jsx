@@ -13,7 +13,7 @@ const AssignmentsTable = ({ assignments, onDelete }) => {
         <thead className="bg-gray-100">
           <tr>
             <th className="border px-4 py-2">Activity</th>
-            <th className="border px-4 py-2">Group</th>
+            <th className="border px-4 py-2">Group / Student</th>
             <th className="border px-4 py-2">Course</th>
             <th className="border px-4 py-2">Status</th>
             <th className="border px-4 py-2">Submitted</th>
@@ -24,20 +24,44 @@ const AssignmentsTable = ({ assignments, onDelete }) => {
         <tbody>
           {assignments.map((a) => (
             <tr key={a.id} className="text-center">
-              <td className="border px-4 py-2">{a.activity?.title || "-"}</td>
+              {/* Activity */}
               <td className="border px-4 py-2">
-                {a.groupAssignment?.name || "-"}
+                {a.assignment?.activity?.name ||
+                  a.assignment?.activity?.title ||
+                  a.assignment?.activityId || // fallback to activityId
+                  "-"}
               </td>
+
+              {/* Group / Student */}
               <td className="border px-4 py-2">
-                {a.activity?.course?.title || "-"}
+                {a.groupAssignment?.group?.name ||
+                  a.groupAssignmentId || // fallback to ID if group name missing
+                  a.student?.name ||
+                  a.studentId || // fallback to studentId
+                  "-"}
               </td>
-              <td className="border px-4 py-2">{a.status?.name || "-"}</td>
+
+              {/* Course */}
+              <td className="border px-4 py-2">
+                {a.assignment?.course?.title || a.assignment?.courseId || "-"}
+              </td>
+
+              {/* Status */}
+              <td className="border px-4 py-2">
+                {a.status?.name || a.statusId || "-"}
+              </td>
+
+              {/* Submitted */}
               <td className="border px-4 py-2">
                 {a.submittedAt
                   ? new Date(a.submittedAt).toLocaleDateString()
                   : "-"}
               </td>
-              <td className="border px-4 py-2">{a.grade || "-"}</td>
+
+              {/* Grade */}
+              <td className="border px-4 py-2">{a.grade ?? "-"}</td>
+
+              {/* Actions */}
               <td className="border px-4 py-2">
                 <button
                   onClick={() => onDelete(a.id)}

@@ -80,6 +80,7 @@ model Course {
   certificates  Certificate[]
   groups        Group[]
   qrCodeSessions QRCodeSession[] // <- add this
+  assignments    Assignment[]
 }
 
 
@@ -126,10 +127,26 @@ model Activity {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   course      Course           @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  assignments StudentAssignment[]
-  groupAssignments GroupAssignment[]
+  assignments Assignment[]
   type        ActivityTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
+
+model Assignment {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  title       String
+  description String?
+  dueDate     DateTime?
+  courseId    String   @db.ObjectId
+  activityId  String?  @db.ObjectId      // make optional
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course      Course    @relation(fields: [courseId], references: [id])
+  activity    Activity? @relation(fields: [activityId], references: [id]) // make optional
+  studentAssignments StudentAssignment[]
+  groupAssignments   GroupAssignment[]
+}
+
 
 model Exam {
   id           String           @id @map("_id") @default(auto()) @db.ObjectId
@@ -153,42 +170,37 @@ model Exam {
 }
 
 model GroupAssignment {
-  id                String           @id @map("_id") @default(auto()) @db.ObjectId
-  activityId        String           @db.ObjectId
-  groupId           String           @db.ObjectId
-  assignedAt        DateTime         @default(now())
-  dueDate           DateTime?
-  content           String?
-  fileUrl           String?
-  grade             Float?
-  feedback          String?
-  statusId          String           @default("ASSIGNED") @db.ObjectId
+  id           String   @id @map("_id") @default(auto()) @db.ObjectId
+  assignmentId String   @db.ObjectId
+  groupId      String   @db.ObjectId
+  assignedAt   DateTime @default(now())
 
-  activity          Activity         @relation(fields: [activityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  group             Group            @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  group        Group      @relation(fields: [groupId], references: [id])
   studentAssignments StudentAssignment[]
 
-  @@unique([activityId, groupId])
+  @@unique([assignmentId, groupId])
 }
 
 model StudentAssignment {
-  id                String           @id @map("_id") @default(auto()) @db.ObjectId
-  activityId        String?          @db.ObjectId
-  studentId         String?          @db.ObjectId
-  groupAssignmentId String?          @db.ObjectId
+  id                String   @id @map("_id") @default(auto()) @db.ObjectId
+  assignmentId      String   @db.ObjectId
+  studentId         String?  @db.ObjectId
+  groupAssignmentId String?  @db.ObjectId
   submittedAt       DateTime?
   content           String?
   fileUrl           String?
   grade             Float?
   feedback          String?
-  statusId          String           @default("ASSIGNED") @db.ObjectId
+  statusId          String   @default("ASSIGNED") @db.ObjectId
 
-  activity          Activity?        @relation(fields: [activityId], references: [id])
+  assignment        Assignment       @relation(fields: [assignmentId], references: [id])
   student           User?            @relation(fields: [studentId], references: [id])
   groupAssignment   GroupAssignment? @relation(fields: [groupAssignmentId], references: [id])
+  status            AttendanceStatusEnum @relation(fields: [statusId], references: [id])
 
-  @@unique([activityId, studentId])
-  @@unique([activityId, groupAssignmentId])
+  @@unique([assignmentId, studentId])
+  @@unique([assignmentId, groupAssignmentId])
 }
 
 model Certificate {
@@ -320,6 +332,7 @@ model AttendanceStatusEnum {
   id          String       @id @map("_id") @default(auto()) @db.ObjectId
   name        String       @unique
   attendances Attendance[]
+  studentAssignments StudentAssignment[]
 }
 
 model MaterialTypeEnum {

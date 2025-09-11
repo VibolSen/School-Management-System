@@ -44,6 +44,47 @@ export default function AddExamModal({ isOpen, onClose, courses = [], examToEdit
     }));
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const instructorId = "668e7f49530579e269340e0b"; // Hardcoded for now
+    if (!formData.examDate) {
+      alert("Please select a date for the exam.");
+      return;
+    }
+    const startDate = new Date(`${formData.examDate}T${formData.startTime}`);
+    if (isNaN(startDate.getTime())) {
+      alert("The selected date or time is invalid.");
+      return;
+    }
+    const payload = {
+      title: formData.title,
+      description: formData.description,
+      duration: formData.duration,
+      courseId: formData.courseId,
+      instructorId,
+      startDate,
+    };
+    console.log("Payload:", payload);
+
+    try {
+      const res = await fetch("/api/exam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to add exam");
+      }
+
+      onClose();
+    } catch (err) {
+      console.error("Add Exam Error:", err);
+      alert(err.message);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -68,7 +109,7 @@ export default function AddExamModal({ isOpen, onClose, courses = [], examToEdit
           </button>
         </div>
 
-        <form>
+        <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-slate-700 mb-1">
@@ -171,7 +212,7 @@ export default function AddExamModal({ isOpen, onClose, courses = [], examToEdit
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">
               Cancel
             </button>
-            <button type="button" className="px-4 py-2 bg-blue-600 text-white rounded-md">
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md">
               {isEditMode ? 'Save Changes' : 'Schedule Exam'}
             </button>
           </div>

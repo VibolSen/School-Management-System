@@ -72,6 +72,6 @@
     "components/ReportsView.jsx",
     "app/hr/leave/page.jsx",
     "components/leave/LeaveManagementView.jsx"
-  ],
+, "app/student/assignments/page.jsx"  ],
   "exclude": ["node_modules"]
 }

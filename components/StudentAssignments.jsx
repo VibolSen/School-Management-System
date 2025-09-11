@@ -18,6 +18,9 @@ const StudentAssignments = () => {
     activityId: "",
     groupId: "",
     statusId: "",
+    title: "",
+    description: "",
+    dueDate: "",
     content: "",
     fileUrl: "",
     grade: "",
@@ -88,15 +91,41 @@ const StudentAssignments = () => {
     }
   };
 
-  const fetchAssignments = async () => {
-    try {
-      const res = await fetch("/api/studentAssignments");
-      const data = await res.json();
-      setAssignments(Array.isArray(data) ? data : []);
-    } catch {
-      setAssignments([]);
-    }
-  };
+const fetchAssignments = async () => {
+  try {
+    const res = await fetch("/api/assignments"); // Ensure this matches your API
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+    const data = await res.json();
+
+    // Normalize IDs and avoid nulls in nested relations
+    const normalizedData = Array.isArray(data)
+      ? data.map((a) => ({
+          ...a,
+          id: a.id || a._id,
+          assignment: a.assignment
+            ? { ...a.assignment, id: a.assignment.id || a.assignment._id }
+            : null,
+          groupAssignment: a.groupAssignment
+            ? {
+                ...a.groupAssignment,
+                id: a.groupAssignment.id || a.groupAssignment._id,
+              }
+            : null,
+          student: a.student
+            ? { ...a.student, id: a.student.id || a.student._id }
+            : null,
+        }))
+      : [];
+
+    console.log("Fetched assignments:", normalizedData);
+    setAssignments(normalizedData);
+  } catch (err) {
+    console.error("Error fetching assignments:", err);
+    setAssignments([]);
+  }
+};
+
 
   // --- useEffect ---
   useEffect(() => {
@@ -105,6 +134,9 @@ const StudentAssignments = () => {
     fetchActivityTypes();
     fetchAssignments();
   }, []);
+
+  
+
 
   useEffect(() => {
     if (formData.departmentId) fetchCoursesByDepartment(formData.departmentId);
@@ -146,6 +178,10 @@ const StudentAssignments = () => {
     if (!formData.groupId) return alert("Please select a group.");
 
     const payload = {
+      title: formData.title,
+      description: formData.description,
+      dueDate: new Date(formData.dueDate),
+      courseId: formData.courseId,
       activityId: formData.activityId,
       groupId: formData.groupId,
       statusId: formData.statusId,
@@ -157,7 +193,7 @@ const StudentAssignments = () => {
     };
 
     try {
-      const res = await fetch("/api/studentAssignments", {
+      const res = await fetch("/api/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -176,6 +212,9 @@ const StudentAssignments = () => {
         activityId: "",
         groupId: "",
         statusId: "",
+        title: "",
+        description: "",
+        dueDate: "",
         content: "",
         fileUrl: "",
         grade: "",
@@ -193,7 +232,7 @@ const StudentAssignments = () => {
     if (!confirm("Are you sure you want to delete this assignment?")) return;
 
     try {
-      const res = await fetch(`/api/studentAssignments?id=${id}`, {
+      const res = await fetch(`/api/assignments?id=${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete assignment");
@@ -214,6 +253,35 @@ const StudentAssignments = () => {
         className="mb-6 p-4 bg-white shadow rounded space-y-4"
       >
         <h2 className="text-lg font-semibold">Add New Assignment</h2>
+
+        {/* Title, Description, Due Date */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input
+            type="text"
+            name="title"
+            placeholder="Title"
+            value={formData.title}
+            onChange={handleInputChange}
+            className="border p-2 rounded w-full"
+            required
+          />
+          <input
+            type="text"
+            name="description"
+            placeholder="Description"
+            value={formData.description}
+            onChange={handleInputChange}
+            className="border p-2 rounded w-full"
+          />
+          <input
+            type="datetime-local"
+            name="dueDate"
+            placeholder="Due Date"
+            value={formData.dueDate}
+            onChange={handleInputChange}
+            className="border p-2 rounded w-full"
+          />
+        </div>
 
         {/* Department & Course */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
