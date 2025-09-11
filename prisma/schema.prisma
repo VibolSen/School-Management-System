@@ -173,7 +173,7 @@ model GroupAssignment {
 
 model StudentAssignment {
   id                String           @id @map("_id") @default(auto()) @db.ObjectId
-  activityId        String           @db.ObjectId
+  activityId        String?          @db.ObjectId
   studentId         String?          @db.ObjectId
   groupAssignmentId String?          @db.ObjectId
   submittedAt       DateTime?
@@ -183,7 +183,7 @@ model StudentAssignment {
   feedback          String?
   statusId          String           @default("ASSIGNED") @db.ObjectId
 
-  activity          Activity         @relation(fields: [activityId], references: [id])
+  activity          Activity?        @relation(fields: [activityId], references: [id])
   student           User?            @relation(fields: [studentId], references: [id])
   groupAssignment   GroupAssignment? @relation(fields: [groupAssignmentId], references: [id])
 
