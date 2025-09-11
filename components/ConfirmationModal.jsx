@@ -16,7 +16,8 @@ const ConfirmationModal = ({
       button: "bg-red-600 hover:bg-red-700 focus:ring-red-500",
       iconContainer: "bg-red-100",
       icon: "text-red-600",
-      iconPath: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z",
+      iconPath:
+        "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z",
     },
     success: {
       button: "bg-green-600 hover:bg-green-700 focus:ring-green-500",
@@ -64,7 +65,8 @@ const ConfirmationModal = ({
             >
               {title}
             </h3>
-            <p className="mt-2 text-sm text-slate-500">{message}</p>
+            {/* Fix: changed <p> to <div> to allow nested <p> */}
+            <div className="mt-2 text-sm text-slate-500">{message}</div>
           </div>
         </div>
 

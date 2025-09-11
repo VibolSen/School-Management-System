@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 
 const initialFormState = {
   title: "",
-  department: "", // Empty default
+  departmentId: "", // ✅ use departmentId instead of department
   description: "",
   objectives: "",
   methodology: "",
@@ -29,8 +29,8 @@ const AddCourseModal = ({
     if (isOpen) {
       if (courseToEdit) {
         setFormData({
-          title: courseToEdit.title,
-          department: courseToEdit.department || "",
+          title: courseToEdit.title || "",
+          departmentId: courseToEdit.departmentId || "",
           description: courseToEdit.description || "",
           objectives: courseToEdit.objectives || "",
           methodology: courseToEdit.methodology || "",
@@ -40,7 +40,6 @@ const AddCourseModal = ({
         setFormData(initialFormState);
       }
       setError("");
-      // Autofocus on the input
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
@@ -56,7 +55,7 @@ const AddCourseModal = ({
       setError("Please select an instructor.");
       return false;
     }
-    if (!formData.department) {
+    if (!formData.departmentId) {
       setError("Please select a department.");
       return false;
     }
@@ -67,7 +66,7 @@ const AddCourseModal = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      onSaveCourse(formData);
+      onSaveCourse(formData); // ✅ now sends departmentId + instructorId
     }
   };
 
@@ -118,6 +117,7 @@ const AddCourseModal = ({
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="p-6 space-y-4">
+            {/* Title */}
             <div>
               <label
                 htmlFor="title"
@@ -179,21 +179,21 @@ const AddCourseModal = ({
               )}
             </div>
 
-            {/* Department Selection with real data */}
+            {/* Department Selection (fixed to use departmentId) */}
             <div>
               <label
-                htmlFor="department"
+                htmlFor="departmentId"
                 className="block text-sm font-medium text-slate-700 mb-1"
               >
                 Department
               </label>
               <select
-                id="department"
-                name="department"
-                value={formData.department}
+                id="departmentId"
+                name="departmentId"
+                value={formData.departmentId}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  error && !formData.department
+                  error && !formData.departmentId
                     ? "border-red-500 ring-1 ring-red-500"
                     : "border-slate-300"
                 } focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
@@ -201,16 +201,17 @@ const AddCourseModal = ({
               >
                 <option value="">Select a department</option>
                 {departments.map((dept) => (
-                  <option key={dept.id} value={dept.name}>
+                  <option key={dept.id} value={dept.id}>
                     {dept.name}
                   </option>
                 ))}
               </select>
-              {error && !formData.department && (
+              {error && !formData.departmentId && (
                 <p className="text-xs text-red-500 mt-1">{error}</p>
               )}
             </div>
 
+            {/* Description */}
             <div>
               <label
                 htmlFor="description"
@@ -228,6 +229,7 @@ const AddCourseModal = ({
               />
             </div>
 
+            {/* Objectives */}
             <div>
               <label
                 htmlFor="objectives"
@@ -245,6 +247,7 @@ const AddCourseModal = ({
               />
             </div>
 
+            {/* Methodology */}
             <div>
               <label
                 htmlFor="methodology"

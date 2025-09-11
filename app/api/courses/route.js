@@ -1,19 +1,127 @@
-import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+// ===== GET all courses or by ?id= =====
+export async function GET(req) {
   try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (id) {
+      const course = await prisma.course.findUnique({
+        where: { id },
+        include: {
+          instructor: true,
+          department: true,
+          materials: true,
+          activities: true,
+          groups: true,
+        },
+      });
+      if (!course) {
+        return new Response(JSON.stringify({ error: "Course not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify(course), { status: 200 });
+    }
+
     const courses = await prisma.course.findMany({
-      orderBy: { title: "asc" },
+      include: {
+        instructor: true,
+        department: true,
+        materials: true,
+        activities: true,
+        groups: true,
+      },
     });
-    return NextResponse.json(courses);
+    return new Response(JSON.stringify(courses), { status: 200 });
   } catch (error) {
-    console.error("Error fetching courses:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch courses" },
-      { status: 500 }
-    );
+    console.error("GET courses error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+    });
+  }
+}
+
+// ===== POST create a new course =====
+export async function POST(req) {
+  try {
+    const data = await req.json();
+
+    const course = await prisma.course.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        instructorId: data.instructorId,
+        departmentId: data.departmentId, // ✅ fixed
+        objectives: data.objectives,
+        methodology: data.methodology,
+      },
+    });
+
+    return new Response(JSON.stringify(course), { status: 201 });
+  } catch (error) {
+    console.error("Create course error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
+  }
+}
+
+// ===== PUT update a course by ?id= =====
+export async function PUT(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return new Response(JSON.stringify({ error: "Course ID required" }), {
+        status: 400,
+      });
+    }
+
+    const data = await req.json();
+
+    const updatedCourse = await prisma.course.update({
+      where: { id },
+      data: {
+        title: data.title,
+        description: data.description,
+        instructorId: data.instructorId,
+        departmentId: data.departmentId, // ✅ fixed
+        objectives: data.objectives,
+        methodology: data.methodology,
+      },
+    });
+
+    return new Response(JSON.stringify(updatedCourse), { status: 200 });
+  } catch (error) {
+    console.error("Update course error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
+  }
+}
+
+// ===== DELETE a course by ?id= =====
+export async function DELETE(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return new Response(JSON.stringify({ error: "Course ID required" }), {
+        status: 400,
+      });
+    }
+
+    const deletedCourse = await prisma.course.delete({ where: { id } });
+    return new Response(JSON.stringify(deletedCourse), { status: 200 });
+  } catch (error) {
+    console.error("Delete course error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }

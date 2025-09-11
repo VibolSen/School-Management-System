@@ -1,0 +1,110 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+
+const ActivityTypes = () => {
+  const [types, setTypes] = useState([]);
+  const [newType, setNewType] = useState("");
+
+  const fetchTypes = async () => {
+    try {
+      const res = await fetch("/api/activityTypes");
+      if (!res.ok) throw new Error("Failed to fetch activity types");
+      const data = await res.json();
+      setTypes(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchTypes();
+  }, []);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!newType.trim()) return;
+
+    try {
+      const res = await fetch("/api/activityTypes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newType }),
+      });
+      if (!res.ok) throw new Error("Failed to add activity type");
+      const data = await res.json();
+      setTypes((prev) => [...prev, data]);
+      setNewType("");
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this type?")) return;
+
+    try {
+      const res = await fetch(`/api/activityTypes?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete");
+      setTypes((prev) => prev.filter((t) => t.id !== id));
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Activity Types</h1>
+
+      <form onSubmit={handleAdd} className="mb-6 flex gap-2">
+        <input
+          type="text"
+          value={newType}
+          onChange={(e) => setNewType(e.target.value)}
+          placeholder="New Activity Type"
+          className="border p-2 rounded flex-1"
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Add
+        </button>
+      </form>
+
+      {types.length === 0 ? (
+        <p>No activity types found.</p>
+      ) : (
+        <table className="min-w-full border bg-white shadow rounded">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="border px-4 py-2">Name</th>
+              <th className="border px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {types.map((t) => (
+              <tr key={t.id} className="text-center">
+                <td className="border px-4 py-2">{t.name}</td>
+                <td className="border px-4 py-2">
+                  <button
+                    onClick={() => handleDelete(t.id)}
+                    className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+
+export default ActivityTypes;

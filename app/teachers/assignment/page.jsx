@@ -1,5 +1,5 @@
-import AssignmentsView from "@/components/assigments/AssignmentsView";
+import StudentAssignments from "@/components/StudentAssignments";
 
 export default function AssignmentsPage() {
-  return <AssignmentsView />;
+  return <StudentAssignments />;
 }

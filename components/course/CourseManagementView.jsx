@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import CourseTable from "@/components/course/CourseTable";
 import AddCourseModal from "@/components/course/AddCourseModal";
-import ConfirmationModal from "@/components/e-library/ConfirmationModal";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 const CourseManagementView = () => {
   const [courseList, setCourseList] = useState([]);
@@ -34,7 +34,12 @@ const CourseManagementView = () => {
         const teachersData = await teachersRes.json();
         const departmentsData = await departmentsRes.json();
 
-        setCourseList(coursesData);
+        // Handle potential API response formats for courses
+        const coursesArray = Array.isArray(coursesData)
+          ? coursesData
+          : coursesData.courses || [];
+
+        setCourseList(coursesArray);
         setTeachers(teachersData);
         setDepartments(departmentsData);
       } catch (err) {
@@ -89,36 +94,41 @@ const CourseManagementView = () => {
   const handleSaveCourse = async (courseData) => {
     try {
       let res;
+      const url = editingCourse
+        ? `/api/courses?id=${editingCourse.id}`
+        : "/api/courses";
+      const method = editingCourse ? "PUT" : "POST";
 
-      if (editingCourse) {
-        // Update existing course
-        res = await fetch(`/api/courses?id=${editingCourse.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(courseData),
-        });
-      } else {
-        // Add new course
-        res = await fetch("/api/courses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(courseData),
-        });
-      }
+      res = await fetch(url, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(courseData),
+      });
 
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
       }
 
-      const savedCourse = await res.json();
+      // After saving, re-fetch the updated list of courses from the server
+      const updatedCoursesRes = await fetch("/api/courses");
 
-      if (editingCourse) {
-        setCourseList(
-          courseList.map((c) => (c.id === savedCourse.id ? savedCourse : c))
-        );
+      if (!updatedCoursesRes.ok) {
+        throw new Error("Failed to fetch updated course list");
+      }
+
+      const updatedData = await updatedCoursesRes.json();
+
+      // Handle different API response formats
+      const updatedCourses = Array.isArray(updatedData)
+        ? updatedData
+        : updatedData.courses || [];
+
+      if (Array.isArray(updatedCourses)) {
+        setCourseList(updatedCourses);
       } else {
-        setCourseList([...courseList, savedCourse]);
+        console.error("API did not return an array of courses:", updatedData);
+        throw new Error("Invalid data received from server");
       }
 
       handleCloseModal();

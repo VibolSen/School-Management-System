@@ -15,7 +15,7 @@ const CourseTable = ({
     return courses.filter((course) => {
       const courseTitle = course.title || "Untitled Course";
       const courseId = course.id || "";
-      const courseDepartment = course.department || "General";
+      const courseDepartment = course.department?.name || "General"; // <- fix here
 
       const matchesSearch =
         courseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -31,7 +31,9 @@ const CourseTable = ({
   // Get unique departments from actual courses
   const departments = useMemo(() => {
     const uniqueDepartments = [
-      ...new Set(courses.map((course) => course.department).filter(Boolean)),
+      ...new Set(
+        courses.map((course) => course.department?.name).filter(Boolean) // <- fix here
+      ),
     ];
     return ["All", ...uniqueDepartments.sort()];
   }, [courses]);
@@ -94,7 +96,7 @@ const CourseTable = ({
             {filteredCourses.map((course) => {
               const courseTitle = course.title || "Untitled Course";
               const courseId = course.id || "";
-              const courseDepartment = course.department || "General";
+              const courseDepartment = course.department?.name || "General"; // <- fix here
               const instructorName = course.instructor?.name || "No instructor";
 
               return (

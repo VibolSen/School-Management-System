@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import ELibraryGrid from "./ELibraryGrid";
 import AddResourceModal from "./AddResourceModal";
-import ConfirmationModal from "./ConfirmationModal";
+import ConfirmationModal from "../ConfirmationModal";
 import ResourceDetailModal from "./ResourceDetailModal";
 
 const ELibraryView = ({ loggedInUser }) => {
@@ -18,7 +18,6 @@ const ELibraryView = ({ loggedInUser }) => {
   const [editingResource, setEditingResource] = useState(null);
   const [resourceToDelete, setResourceToDelete] = useState(null);
   const [types, setTypes] = useState([]);
-
 
   // Safe fetch resources
   const fetchResources = async () => {
@@ -46,7 +45,6 @@ const ELibraryView = ({ loggedInUser }) => {
       setTypes([]);
     }
   };
-  
 
   // Safe fetch departments
   const fetchDepartments = async () => {
@@ -55,7 +53,7 @@ const ELibraryView = ({ loggedInUser }) => {
       if (!res.ok) throw new Error(res.statusText);
       const text = await res.text();
       const data = text ? JSON.parse(text) : [];
-      setDepartments(data.map(dep => dep.name));
+      setDepartments(data.map((dep) => dep.name));
     } catch (e) {
       console.error("Failed to fetch departments:", e);
       setDepartments([]);
@@ -80,60 +78,70 @@ const ELibraryView = ({ loggedInUser }) => {
 
   const handleDelete = async (resource) => {
     try {
-      const res = await fetch(`/api/library?id=${resource.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/library?id=${resource.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete resource");
-  
+
       // Remove the resource from state
-      setResources(resources.filter(r => r.id !== resource.id));
-  
+      setResources(resources.filter((r) => r.id !== resource.id));
+
       // Close the modal
       setResourceToDelete(null);
     } catch (e) {
       console.error(e);
     }
   };
-  
 
   const handleSaveResource = async (resourceData) => {
     if (!loggedInUser) {
       console.error("No logged-in user!");
       return;
     }
-  
+
     if (!resourceData.typeId) {
       console.error("Material type is required!");
       return;
     }
-  
+
     try {
       const formData = new FormData();
       formData.append("title", resourceData.title);
       formData.append("uploadedById", loggedInUser.id);
       formData.append("typeId", resourceData.typeId);
-  
+
       // ✅ FIX: include author
       if (resourceData.author) formData.append("author", resourceData.author);
-  
-      if (resourceData.department) formData.append("department", resourceData.department);
-      if (resourceData.description) formData.append("description", resourceData.description);
-      if (resourceData.coverImage) formData.append("coverImage", resourceData.coverImage);
-      
+
+      if (resourceData.department)
+        formData.append("department", resourceData.department);
+      if (resourceData.description)
+        formData.append("description", resourceData.description);
+      if (resourceData.coverImage)
+        formData.append("coverImage", resourceData.coverImage);
+
       // Make sure publicationYear is a valid number
-      if (resourceData.publicationYear && !isNaN(resourceData.publicationYear)) {
-        formData.append("publicationYear", String(resourceData.publicationYear));
+      if (
+        resourceData.publicationYear &&
+        !isNaN(resourceData.publicationYear)
+      ) {
+        formData.append(
+          "publicationYear",
+          String(resourceData.publicationYear)
+        );
       }
-  
+
       const url = editingResource
         ? `/api/library?id=${editingResource.id}`
         : "/api/library";
       const method = editingResource ? "PUT" : "POST";
-  
+
       const res = await fetch(url, { method, body: formData });
       if (!res.ok) {
         const errMsg = await res.text();
         throw new Error(errMsg || "Failed to save resource");
       }
-  
+
       fetchResources();
       setIsEditModalOpen(false);
       setEditingResource(null);
@@ -141,14 +149,15 @@ const ELibraryView = ({ loggedInUser }) => {
       console.error("Failed to save resource", err);
     }
   };
-  
+
   // ✅ Filter by department and type
   const filteredResources = useMemo(() => {
-    return resources.filter(r =>
-      (r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.description?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (departmentFilter === "All" || r.department === departmentFilter) &&
-      (typeFilter === "All" || r.type?.id === typeFilter)
+    return resources.filter(
+      (r) =>
+        (r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          r.description?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (departmentFilter === "All" || r.department === departmentFilter) &&
+        (typeFilter === "All" || r.type?.id === typeFilter)
     );
   }, [resources, searchTerm, departmentFilter, typeFilter]);
 
@@ -156,7 +165,10 @@ const ELibraryView = ({ loggedInUser }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">E-Library</h1>
-        <button onClick={handleAddClick} className="bg-blue-600 text-white px-4 py-2 rounded">
+        <button
+          onClick={handleAddClick}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
           Add Resource
         </button>
       </div>
@@ -166,30 +178,34 @@ const ELibraryView = ({ loggedInUser }) => {
           type="text"
           placeholder="Search..."
           value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="border px-3 py-2 rounded"
         />
         {/* ✅ Type Filter */}
         <select
           value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value)}
+          onChange={(e) => setTypeFilter(e.target.value)}
           className="border px-3 py-2 rounded"
         >
           <option value="All">All Types</option>
-          {types.map(type => (
-            <option key={type.id} value={type.id}>{type.name}</option>
+          {types.map((type) => (
+            <option key={type.id} value={type.id}>
+              {type.name}
+            </option>
           ))}
         </select>
 
         {/* Department Filter */}
         <select
           value={departmentFilter}
-          onChange={e => setDepartmentFilter(e.target.value)}
+          onChange={(e) => setDepartmentFilter(e.target.value)}
           className="border px-3 py-2 rounded"
         >
           <option value="All">All Departments</option>
-          {departments.map(dep => (
-            <option key={dep} value={dep}>{dep}</option>
+          {departments.map((dep) => (
+            <option key={dep} value={dep}>
+              {dep}
+            </option>
           ))}
         </select>
       </div>

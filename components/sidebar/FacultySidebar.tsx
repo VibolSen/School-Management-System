@@ -69,6 +69,11 @@ const FACULTY_NAV_ITEMS = [
     href: "/faculty/students",
   },
   {
+    label: "Groups",
+    icon: <FiUsers className="w-5 h-5" />,
+    href: "/faculty/group",
+  },
+  {
     label: "Departments",
     icon: <FiUsers className="w-5 h-5" />,
     href: "/faculty/departments",

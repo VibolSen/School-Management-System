@@ -10,292 +10,209 @@ datasource db {
 
 ///////////////////////////
 // Models
-/////////////////////////
+///////////////////////////
 
 model Department {
-  id        String   @id @map("_id") @default(auto()) @db.ObjectId
-  name      String   @unique
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  name        String   @unique
   description String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  // Add relation to User if a User belongs to a Department
-  // users     User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  courses     Course[]
 }
 
 model User {
-  id            String     @id @map("_id") @default(auto()) @db.ObjectId
+  id            String   @id @map("_id") @default(auto()) @db.ObjectId
   name          String?
-  email         String     @unique
+  email         String   @unique
   password      String
-  roleId        String     @default("students") @db.ObjectId
-  role          RoleEnum   @relation(fields: [roleId], references: [id])
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  roleId        String   @db.ObjectId
+  role          RoleEnum @relation(fields: [roleId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   lastLogin     DateTime?
   lastActivity  DateTime?
   lockedAt      DateTime?
   lockReason    String?
-  isLocked      Boolean    @default(false)
-  isActive      Boolean    @default(true)
+  isLocked      Boolean  @default(false)
+  isActive      Boolean  @default(true)
   department    String?
   position      String?
   contactNumber String?
   image         String?
-  enrollmentDate DateTime? // Add this for overall student enrollment date
-  studentStatusId String?   @db.ObjectId // Add this for overall student status
+  enrollmentDate DateTime?
+  studentStatusId String? @db.ObjectId
 
   // Relations
-  accounts          Account[]
-  sessions          Session[]
-  courses           Course[]            @relation("CourseInstructor")
-  enrollments       Enrollment[]
-  attendances       Attendance[]
-  leaveRequests     LeaveRequest[]
-  approvedLeaves    LeaveRequest[]      @relation("LeaveApprover")
-  taughtExams       Exam[]              @relation("ExamInstructor")
-  assignedExams     ExamAssignment[]
-  trainingTeacherCV TrainingTeacherCV?
-  materialsUploaded Material[]
-  assignments       StudentAssignment[]
-  discussions       Discussion[]
-  certificates      Certificate[]
-  libraryResources  LibraryResource[]
-  activityLogs      ActivityLog[]
-  createdAnnouncements Announcement[]
-  sentNotifications Notification[]
-  surveyResponses   SurveyResponse[]
-  createdQRCodeSessions QRCodeSession[]
+  courses                Course[]          @relation("CourseInstructor")
+  attendances            Attendance[]
+  taughtExams            Exam[]            @relation("ExamInstructor")
+  materialsUploaded      Material[]
+  assignments            StudentAssignment[]
+  certificates           Certificate[]
+  libraryResources       LibraryResource[]
+  activityLogs           ActivityLog[]
+  createdQRCodeSessions  QRCodeSession[]
   createdOvertimeSessions OvertimeSession[]
-  systemConfigUpdates SystemConfiguration[]
-  studentStatus     EnrollmentStatusEnum? @relation("OverallStudentStatus", fields: [studentStatusId], references: [id]) // Relation for overall student status
-}
-
-model Account {
-  id                String  @id @map("_id") @default(auto()) @db.ObjectId
-  userId            String  @db.ObjectId
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @map("_id") @default(auto()) @db.ObjectId
-  sessionToken String   @unique
-  userId       String   @db.ObjectId
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupMembers           GroupMember[]
 }
 
 model Course {
-  id          String   @id @map("_id") @default(auto()) @db.ObjectId
-  title       String
-  description String?
-  instructor  User     @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  instructorId String  @db.ObjectId
-  department   String? 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  objectives  String?
-  methodology String?
-  topics      Topic[]
+  id           String     @id @map("_id") @default(auto()) @db.ObjectId
+  title        String
+  description  String?
+  instructorId String?    @db.ObjectId
+  instructor   User?      @relation("CourseInstructor", fields: [instructorId], references: [id])
+  departmentId String?    @db.ObjectId
+  department   Department? @relation(fields: [departmentId], references: [id])
+  objectives   String?
+  methodology  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   // Relations
-  enrollments Enrollment[]
-  materials   Material[]
-  activities  Activity[]
-  exams       Exam[]
-  competencies CourseCompetency[]
-  discussions Discussion[]
-  certificates Certificate[]
-  attendances Attendance[]
-  surveys     Survey[]
-  qrCodeSessions QRCodeSession[]
+  attendances   Attendance[]
+  materials     Material[]
+  activities    Activity[]
+  exams         Exam[]
+  certificates  Certificate[]
+  groups        Group[]
+  qrCodeSessions QRCodeSession[] // <- add this
 }
 
-model Enrollment {
-  id         String           @id @map("_id") @default(auto()) @db.ObjectId
-  studentId  String           @db.ObjectId
-  courseId   String           @db.ObjectId
-  enrolledAt DateTime         @default(now())
-  statusId   String           @db.ObjectId
-  progress   Float            @default(0)
-  student    User             @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  course     Course           @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  status     EnrollmentStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@unique([studentId, courseId])
-}
 
 model Attendance {
-  id         String                @id @map("_id") @default(auto()) @db.ObjectId
-  userId     String                @db.ObjectId
-  courseId   String?               @db.ObjectId
-  overtimeSessionId String?        @db.ObjectId
-  qrCodeSessionId String?          @db.ObjectId
-  date       DateTime
-  checkIn    DateTime
-  checkOut   DateTime?
-  statusId   String                @db.ObjectId
-  qrCode     String?
-  user       User                  @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  course     Course?               @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  status     AttendanceStatusEnum  @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  overtimeSession OvertimeSession? @relation(fields: [overtimeSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  qrCodeSession QRCodeSession?     @relation(fields: [qrCodeSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model LeaveRequest {
-  id           String      @id @map("_id") @default(auto()) @db.ObjectId
-  userId       String      @db.ObjectId
-  leaveTypeId  String      @db.ObjectId
-  startDate    DateTime
-  endDate      DateTime
-  reason       String
-  statusId     String      @default("PENDING") @db.ObjectId
-  approvedById String?     @db.ObjectId
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  user         User        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  approvedBy   User?       @relation("LeaveApprover", fields: [approvedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  leaveType    LeaveTypeEnum @relation(fields: [leaveTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  status       LeaveStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id             String               @id @map("_id") @default(auto()) @db.ObjectId
+  userId         String               @db.ObjectId
+  courseId       String?              @db.ObjectId
+  overtimeSessionId String?           @db.ObjectId
+  qrCodeSessionId String?             @db.ObjectId
+  date           DateTime
+  checkIn        DateTime
+  checkOut       DateTime?
+  statusId       String               @db.ObjectId
+  qrCode         String?
+  user           User                 @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course         Course?              @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  status         AttendanceStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  overtimeSession OvertimeSession?    @relation(fields: [overtimeSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  qrCodeSession  QRCodeSession?       @relation(fields: [qrCodeSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model Material {
-  id          String       @id @map("_id") @default(auto()) @db.ObjectId
-  title       String
-  description String?
-  typeId      String       @db.ObjectId
-  fileUrl     String?
-  content     String?
-  courseId    String       @db.ObjectId
-  uploadedById String      @db.ObjectId
-  uploadedAt  DateTime     @default(now())
-  course      Course       @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  uploadedBy  User         @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  type        MaterialTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id           String           @id @map("_id") @default(auto()) @db.ObjectId
+  title        String
+  description  String?
+  typeId       String           @db.ObjectId
+  fileUrl      String?
+  content      String?
+  courseId     String           @db.ObjectId
+  uploadedById String           @db.ObjectId
+  uploadedAt   DateTime         @default(now())
+  course       Course           @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  uploadedBy   User             @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  type         MaterialTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model Activity {
-  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  id          String           @id @map("_id") @default(auto()) @db.ObjectId
   title       String
   description String?
-  typeId      String   @db.ObjectId
-  courseId    String   @db.ObjectId
+  typeId      String           @db.ObjectId
+  courseId    String           @db.ObjectId
   dueDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   assignments StudentAssignment[]
+  groupAssignments GroupAssignment[]
   type        ActivityTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model Exam {
-  id           String   @id @map("_id") @default(auto()) @db.ObjectId
+  id           String           @id @map("_id") @default(auto()) @db.ObjectId
   title        String
   description  String?
-  instructorId String   @db.ObjectId
-  courseId     String?  @db.ObjectId
+  instructorId String           @db.ObjectId
+  courseId     String?          @db.ObjectId
   startDate    DateTime?
   endDate      DateTime?
   duration     Int?
-  passingScore Float    @default(70)
-  maxAttempts  Int      @default(1)
-  isRandom     Boolean  @default(false)
-  isShuffled   Boolean  @default(false)
-  typeId       String   @default("ANYTIME") @db.ObjectId
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  instructor   User     @relation("ExamInstructor", fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  course       Course?  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  questions    Question[]
-  assignments  ExamAssignment[]
-  competencies ExamCompetency[]
+  passingScore Float            @default(70)
+  maxAttempts  Int              @default(1)
+  isRandom     Boolean          @default(false)
+  isShuffled   Boolean          @default(false)
+  typeId       String           @default("ANYTIME") @db.ObjectId
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  instructor   User             @relation("ExamInstructor", fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course       Course?          @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   certificates Certificate[]
-  type         ExamTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model Question {
-  id            String      @id @map("_id") @default(auto()) @db.ObjectId
-  content       String
-  typeId        String      @db.ObjectId
-  options       String
-  correctAnswer String
-  points        Float       @default(1)
-  examId        String      @db.ObjectId
-  competencyId  String?     @db.ObjectId
-  exam          Exam        @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  competency    Competency? @relation(fields: [competencyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  type          QuestionTypeEnum @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
+model GroupAssignment {
+  id                String           @id @map("_id") @default(auto()) @db.ObjectId
+  activityId        String           @db.ObjectId
+  groupId           String           @db.ObjectId
+  assignedAt        DateTime         @default(now())
+  dueDate           DateTime?
+  content           String?
+  fileUrl           String?
+  grade             Float?
+  feedback          String?
+  statusId          String           @default("ASSIGNED") @db.ObjectId
 
-model ExamAssignment {
-  id         String           @id @map("_id") @default(auto()) @db.ObjectId
-  examId     String           @db.ObjectId
-  studentId  String           @db.ObjectId
-  assignedAt DateTime         @default(now())
-  statusId   String           @default("ASSIGNED") @db.ObjectId
-  attempts      Int           @default(0)
-  lastAttempt   DateTime?
-  deviceId      String?
-  ipAddress     String?
-  timeSpent     Int?
-  exam       Exam             @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  student    User             @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  status     AssignmentStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  activity          Activity         @relation(fields: [activityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  group             Group            @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  studentAssignments StudentAssignment[]
 
-  @@unique([examId, studentId])
+  @@unique([activityId, groupId])
 }
 
 model StudentAssignment {
-  id          String           @id @map("_id") @default(auto()) @db.ObjectId
-  activityId  String           @db.ObjectId
-  studentId   String           @db.ObjectId
-  submittedAt DateTime?
-  content     String?
-  fileUrl     String?
-  grade       Float?
-  feedback    String?
-  statusId    String @default("ASSIGNED") @db.ObjectId
-  activity    Activity         @relation(fields: [activityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  student     User             @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  status      AssignmentStatusEnum @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                String           @id @map("_id") @default(auto()) @db.ObjectId
+  activityId        String           @db.ObjectId
+  studentId         String?          @db.ObjectId
+  groupAssignmentId String?          @db.ObjectId
+  submittedAt       DateTime?
+  content           String?
+  fileUrl           String?
+  grade             Float?
+  feedback          String?
+  statusId          String           @default("ASSIGNED") @db.ObjectId
+
+  activity          Activity         @relation(fields: [activityId], references: [id])
+  student           User?            @relation(fields: [studentId], references: [id])
+  groupAssignment   GroupAssignment? @relation(fields: [groupAssignmentId], references: [id])
 
   @@unique([activityId, studentId])
+  @@unique([activityId, groupAssignmentId])
 }
 
 model Certificate {
-  id         String             @id @map("_id") @default(auto()) @db.ObjectId
-  studentId  String             @db.ObjectId
-  examId     String?            @db.ObjectId
-  courseId   String?            @db.ObjectId
-  templateId String             @db.ObjectId
-  issuedAt   DateTime           @default(now())
+  id         String              @id @map("_id") @default(auto()) @db.ObjectId
+  studentId  String              @db.ObjectId
+  examId     String?             @db.ObjectId
+  courseId   String?             @db.ObjectId
+  templateId String              @db.ObjectId
+  issuedAt   DateTime            @default(now())
   downloadUrl String
-  student    User               @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  exam       Exam?              @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  course     Course?            @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  student    User                @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exam       Exam?               @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course     Course?             @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   template   CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model CertificateTemplate {
-  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  id          String       @id @map("_id") @default(auto()) @db.ObjectId
   name        String
   description String?
   design      String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   certificates Certificate[]
 }
 
@@ -307,10 +224,7 @@ model Competency {
   level       Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  category            CompetencyCategory @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  questions           Question[]
-  courseCompetencies   CourseCompetency[]
-  examCompetencies     ExamCompetency[]
+  category    CompetencyCategory @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model CompetencyCategory {
@@ -320,39 +234,6 @@ model CompetencyCategory {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   competencies Competency[]
-}
-
-model CourseCompetency {
-  id           String     @id @map("_id") @default(auto()) @db.ObjectId
-  courseId     String     @db.ObjectId
-  competencyId String     @db.ObjectId
-  weight       Float @default(1)
-  course     Course     @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  competency Competency @relation(fields: [competencyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  @@unique([courseId, competencyId])
-}
-
-model ExamCompetency {
-  id           String     @id @map("_id") @default(auto()) @db.ObjectId
-  examId       String     @db.ObjectId
-  competencyId String     @db.ObjectId
-  weight       Float @default(1)
-  exam       Exam       @relation(fields: [examId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  competency Competency @relation(fields: [competencyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  @@unique([examId, competencyId])
-}
-
-model TrainingTeacherCV {
-  id           String   @id @map("_id") @default(auto()) @db.ObjectId
-  teacherId    String   @unique @db.ObjectId
-  qualifications String
-  experience   String
-  specialties  String
-  contactInfo  String
-  fileUrl      String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  teacher      User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 }
 
 model ActivityLog {
@@ -366,143 +247,21 @@ model ActivityLog {
   user      User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model Discussion {
-  id        String   @id @map("_id") @default(auto()) @db.ObjectId
-  title     String
-  content   String
-  authorId  String   @db.ObjectId
-  courseId  String?  @db.ObjectId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  author    User     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  course    Course?  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
 model LibraryResource {
-  id              String       @id @map("_id") @default(auto()) @db.ObjectId
+  id              String           @id @map("_id") @default(auto()) @db.ObjectId
   title           String
   author          String?
   description     String?
-  department      String       @default("General") // ✅ Default so existing rows get a value
-  publicationYear Int          @default(2000)      // ✅ Default so existing rows get a value
-  typeId          String       @db.ObjectId
+  department      String           @default("General")
+  publicationYear Int              @default(2000)
+  typeId          String           @db.ObjectId
   fileUrl         String?
-  uploadedById    String       @db.ObjectId
-  createdAt       DateTime @default(now())
-
-  uploadedBy   User            @relation(fields: [uploadedById], references: [id])
-  type         MaterialTypeEnum @relation(fields: [typeId], references: [id])
+  uploadedById    String           @db.ObjectId
+  createdAt       DateTime         @default(now())
+  uploadedBy      User             @relation(fields: [uploadedById], references: [id])
+  type            MaterialTypeEnum @relation(fields: [typeId], references: [id])
 }
 
-model Configuration {
-  id        String   @id @map("_id") @default(auto()) @db.ObjectId
-  key       String   @unique
-  value     String
-  updatedAt DateTime @updatedAt
-  smtpSettings  String?
-}
-
-model Topic {
-  id        String  @id @map("_id") @default(auto()) @db.ObjectId
-  name      String
-  courseId  String  @db.ObjectId
-  course    Course  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-// System Configuration
-model SystemConfiguration {
-  id            String   @id @map("_id") @default(auto()) @db.ObjectId
-  schoolName    String
-  contactEmail  String
-  timezone      String
-  brandLogo     String?
-  address       String?
-  phone         String?
-  examSettings  String
-  gradingSettings String
-  updatedAt     DateTime @updatedAt
-  updatedBy     String   @db.ObjectId
-  updater       User     @relation(fields: [updatedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-// Announcements & Notifications
-model Announcement {
-  id             String   @id @map("_id") @default(auto()) @db.ObjectId
-  title          String
-  content        String
-  authorId       String   @db.ObjectId
-  priority       String   @default("NORMAL")
-  targetAudience String
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  expiresAt      DateTime?
-  author         User     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model Notification {
-  id           String   @id @map("_id") @default(auto()) @db.ObjectId
-  userId       String   @db.ObjectId
-  type         String
-  title        String
-  message      String
-  isRead       Boolean  @default(false)
-  relatedId    String?
-  createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-// Survey System
-model Survey {
-  id          String   @id @map("_id") @default(auto()) @db.ObjectId
-  title       String
-  description String?
-  courseId    String?  @db.ObjectId
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  questions   SurveyQuestion[]
-  responses   SurveyResponse[]
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model SurveyQuestion {
-  id       String   @id @map("_id") @default(auto()) @db.ObjectId
-  surveyId String   @db.ObjectId
-  question String
-  type     String
-  options  String?
-  survey   Survey   @relation(fields: [surveyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model SurveyResponse {
-  id         String   @id @map("_id") @default(auto()) @db.ObjectId
-  surveyId   String   @db.ObjectId
-  userId     String   @db.ObjectId
-  responses  String
-  submittedAt DateTime @default(now())
-  survey     Survey   @relation(fields: [surveyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user       User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-// Learning Paths
-model LearningPath {
-  id          String   @id @map("_id") @default(auto()) @db.ObjectId
-  title       String
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  items       LearningPathItem[]
-}
-
-model LearningPathItem {
-  id             String   @id @map("_id") @default(auto()) @db.ObjectId
-  learningPathId String   @db.ObjectId
-  itemType       String
-  itemId         String
-  order          Int
-  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-// QR Code Attendance
 model QRCodeSession {
   id          String   @id @map("_id") @default(auto()) @db.ObjectId
   courseId    String?  @db.ObjectId
@@ -515,7 +274,6 @@ model QRCodeSession {
   createdBy   User     @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-// Overtime Tracking
 model OvertimeSession {
   id          String   @id @map("_id") @default(auto()) @db.ObjectId
   title       String
@@ -528,66 +286,51 @@ model OvertimeSession {
   instructor  User     @relation(fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+model Group {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  name        String
+  description String?
+  courseId    String?  @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course?  @relation(fields: [courseId], references: [id])
+  members     GroupMember[]
+  assignments GroupAssignment[]
+}
+
+model GroupMember {
+  id         String   @id @map("_id") @default(auto()) @db.ObjectId
+  groupId    String   @db.ObjectId
+  studentId  String   @db.ObjectId
+  assignedAt DateTime @default(now())
+  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, studentId])
+}
+
 // Enum Models
 model RoleEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
+  id    String @id @map("_id") @default(auto()) @db.ObjectId
+  name  String @unique
   users User[]
 }
 
-model EnrollmentStatusEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
-  enrollments Enrollment[]
-  overallStudentStatusUsers User[] @relation("OverallStudentStatus")
-}
-
 model AttendanceStatusEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
+  id          String       @id @map("_id") @default(auto()) @db.ObjectId
+  name        String       @unique
   attendances Attendance[]
 }
 
-model LeaveTypeEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
-  leaveRequests LeaveRequest[]
-}
-
-model LeaveStatusEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
-  leaveRequests LeaveRequest[]
-}
-
 model MaterialTypeEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
-  materials Material[]
+  id               String           @id @map("_id") @default(auto()) @db.ObjectId
+  name             String           @unique
+  materials        Material[]
   libraryResources LibraryResource[]
 }
 
 model ActivityTypeEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
+  id         String     @id @map("_id") @default(auto()) @db.ObjectId
+  name       String     @unique
   activities Activity[]
-}
-
-model ExamTypeEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
-  exams Exam[]
-}
-
-model QuestionTypeEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
-  questions Question[]
-}
-
-model AssignmentStatusEnum {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String @unique
-  examAssignments ExamAssignment[]
-  studentAssignments StudentAssignment[]
 }
