@@ -1,13 +1,10 @@
+// UserManagementView.jsx
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import UserTable from "./UserTable";
 import UserModal from "./UserModal";
-
-// Simple alert notification
-const showMessage = (message, type = "success") => {
-  alert(type === "success" ? `✅ ${message}` : `❌ ${message}`);
-};
+import Notification from "@/components/Notification";
 
 export default function UserManagementView() {
   const [users, setUsers] = useState([]);
@@ -16,6 +13,12 @@ export default function UserManagementView() {
   const [editingUser, setEditingUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState({ show: false, message: "", type: "" });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: "", type: "" }), 3000);
+  };
 
   // Fetch users from API
   const fetchUsers = useCallback(async () => {
@@ -34,8 +37,6 @@ export default function UserManagementView() {
       setIsLoading(false);
     }
   }, []);
-
-  console.log("Users:", users);
 
   // Fetch roles from API
   const fetchRoles = useCallback(async () => {
@@ -158,13 +159,28 @@ export default function UserManagementView() {
   };
 
   if (isLoading && users.length === 0)
-    return <p className="text-center py-10">Loading users...</p>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+    
   if (error) return <p className="text-center py-10 text-red-600">{error}</p>;
 
   return (
     <div className="space-y-6">
+      <Notification 
+        show={notification.show} 
+        message={notification.message} 
+        type={notification.type} 
+        onClose={() => setNotification({ show: false, message: "", type: "" })} 
+      />
+      
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-800">User Management</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">User Management</h1>
+          <p className="text-slate-500 mt-1">Manage all system users and their permissions</p>
+        </div>
       </div>
 
       <UserTable

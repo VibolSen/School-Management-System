@@ -1,3 +1,4 @@
+// UserModal.jsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -111,15 +112,20 @@ export default function UserModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-full overflow-y-auto">
-        <div className="p-6 border-b">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-800">
-              {userToEdit ? "Edit User" : "Add New User"}
-            </h2>
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">
+                {userToEdit ? "Edit User" : "Add New User"}
+              </h2>
+              <p className="text-slate-500 text-sm mt-1">
+                {userToEdit ? "Update user details" : "Create a new user account"}
+              </p>
+            </div>
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-800"
+              className="text-slate-500 hover:text-slate-800 transition-colors p-1 rounded-full hover:bg-slate-100"
               disabled={isLoading}
             >
               <svg
@@ -140,7 +146,7 @@ export default function UserModal({
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Full Name *
             </label>
             <input
@@ -148,17 +154,23 @@ export default function UserModal({
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                errors.name ? "border-red-500" : "border-slate-300"
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                errors.name ? "border-red-500" : "border-slate-300 focus:border-blue-500"
               }`}
+              placeholder="Enter full name"
               required
             />
             {errors.name && (
-              <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+              <p className="text-red-500 text-xs mt-1 flex items-center">
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {errors.name}
+              </p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Email Address *
             </label>
             <input
@@ -166,18 +178,24 @@ export default function UserModal({
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                errors.email ? "border-red-500" : "border-slate-300"
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                errors.email ? "border-red-500" : "border-slate-300 focus:border-blue-500"
               }`}
+              placeholder="Enter email address"
               required
             />
             {errors.email && (
-              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              <p className="text-red-500 text-xs mt-1 flex items-center">
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {errors.email}
+              </p>
             )}
           </div>
           {!userToEdit && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Password *
               </label>
               <input
@@ -185,26 +203,32 @@ export default function UserModal({
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                  errors.password ? "border-red-500" : "border-slate-300"
+                className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                  errors.password ? "border-red-500" : "border-slate-300 focus:border-blue-500"
                 }`}
+                placeholder="Enter password"
                 required={!userToEdit}
               />
               {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                <p className="text-red-500 text-xs mt-1 flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.password}
+                </p>
               )}
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Role *
             </label>
             <select
               name="roleId"
               value={formData.roleId}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white ${
-                errors.roleId ? "border-red-500" : "border-slate-300"
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white ${
+                errors.roleId ? "border-red-500" : "border-slate-300 focus:border-blue-500"
               }`}
               required
             >
@@ -216,35 +240,44 @@ export default function UserModal({
               ))}
             </select>
             {errors.roleId && (
-              <p className="text-red-500 text-xs mt-1">{errors.roleId}</p>
+              <p className="text-red-500 text-xs mt-1 flex items-center">
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {errors.roleId}
+              </p>
             )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Department
-            </label>
-            <input
-              type="text"
-              name="department"
-              value={formData.department}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Department
+              </label>
+              <input
+                type="text"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Department"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Position
+              </label>
+              <input
+                type="text"
+                name="position"
+                value={formData.position}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Position"
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Position
-            </label>
-            <input
-              type="text"
-              name="position"
-              value={formData.position}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Contact Number
             </label>
             <input
@@ -252,42 +285,52 @@ export default function UserModal({
               name="contactNumber"
               value={formData.contactNumber}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              placeholder="Phone number"
             />
           </div>
           {userToEdit && (
-            <div className="flex items-center">
+            <div className="flex items-center p-3 bg-slate-50 rounded-lg">
               <input
                 type="checkbox"
                 name="isActive"
                 checked={formData.isActive}
                 onChange={handleChange}
                 className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                id="isActiveCheckbox"
               />
-              <label className="ml-2 block text-sm text-slate-700">
-                Active
+              <label htmlFor="isActiveCheckbox" className="ml-2 block text-sm text-slate-700">
+                Active User Account
               </label>
             </div>
           )}
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              className="px-5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 border border-transparent rounded-lg text-sm font-medium text-white hover:from-blue-700 hover:to-indigo-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center"
               disabled={isLoading}
             >
-              {isLoading
-                ? "Saving..."
-                : userToEdit
-                ? "Update User"
-                : "Create User"}
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {userToEdit ? "Updating..." : "Creating..."}
+                </>
+              ) : userToEdit ? (
+                "Update User"
+              ) : (
+                "Create User"
+              )}
             </button>
           </div>
         </form>
