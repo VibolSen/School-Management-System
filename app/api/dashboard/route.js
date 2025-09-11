@@ -1,3 +1,4 @@
+// app/api/dashboard/route.js
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 
@@ -5,10 +6,12 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
+    // Fetch users with their roles
     const users = await prisma.user.findMany({
-      include: { studentStatus: true, role: true },
+      include: { role: true }, // only role, no studentStatus
     });
 
+    // Last 5 attendance records
     const attendanceRecords = await prisma.attendance.findMany({
       orderBy: { date: "asc" },
       take: 5,
@@ -20,12 +23,9 @@ export async function GET() {
       Absent: r.absentCount,
     }));
 
-    // Correct stats calculation
-    // ===== Stats calculation =====
+    // Stats calculation
     const totalEnrolledStudents = users.filter(
-      (u) =>
-        u.role?.name === "Students" &&
-        (u.studentStatus?.name === "Enrolled" || u.studentStatus === null)
+      (u) => u.role?.name === "Students"
     ).length;
 
     const staffRoles = ["teacher", "admin", "hr", "faculty"];

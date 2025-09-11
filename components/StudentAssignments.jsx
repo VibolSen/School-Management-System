@@ -16,7 +16,6 @@ const StudentAssignments = () => {
     departmentId: "",
     courseId: "",
     activityId: "",
-    studentId: "",
     groupId: "",
     statusId: "",
     content: "",
@@ -29,11 +28,9 @@ const StudentAssignments = () => {
   const fetchActivityTypes = async () => {
     try {
       const res = await fetch("/api/activity");
-      if (!res.ok) throw new Error("Failed to fetch activity types");
       const data = await res.json();
       setActivityTypes(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to fetch activity types:", error);
+    } catch {
       setActivityTypes([]);
     }
   };
@@ -91,11 +88,22 @@ const StudentAssignments = () => {
     }
   };
 
+  const fetchAssignments = async () => {
+    try {
+      const res = await fetch("/api/studentAssignments");
+      const data = await res.json();
+      setAssignments(Array.isArray(data) ? data : []);
+    } catch {
+      setAssignments([]);
+    }
+  };
+
   // --- useEffect ---
   useEffect(() => {
     fetchDepartments();
     fetchStatuses();
     fetchActivityTypes();
+    fetchAssignments();
   }, []);
 
   useEffect(() => {
@@ -122,12 +130,10 @@ const StudentAssignments = () => {
         courseId: "",
         activityId: "",
         groupId: "",
-        studentId: "",
       }),
       ...(name === "courseId" && {
         activityId: "",
         groupId: "",
-        studentId: "",
       }),
     }));
   };
@@ -137,13 +143,11 @@ const StudentAssignments = () => {
 
     if (!formData.activityId) return alert("Please select an activity.");
     if (!formData.statusId) return alert("Please select a status.");
-    if (!formData.studentId && !formData.groupId)
-      return alert("Please select a student or a group.");
+    if (!formData.groupId) return alert("Please select a group.");
 
     const payload = {
       activityId: formData.activityId,
-      studentId: formData.studentId || null,
-      groupId: formData.groupId || null,
+      groupId: formData.groupId,
       statusId: formData.statusId,
       submittedAt: new Date(),
       content: formData.content?.trim() || null,
@@ -165,13 +169,11 @@ const StudentAssignments = () => {
       }
 
       const newAssignment = await res.json();
-
       setAssignments((prev) => [newAssignment, ...prev]);
       setFormData({
         departmentId: "",
         courseId: "",
         activityId: "",
-        studentId: "",
         groupId: "",
         statusId: "",
         content: "",
@@ -187,8 +189,20 @@ const StudentAssignments = () => {
     }
   };
 
-  const handleDelete = (id) => {
-    setAssignments((prev) => prev.filter((a) => a.id !== id));
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this assignment?")) return;
+
+    try {
+      const res = await fetch(`/api/studentAssignments?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete assignment");
+
+      setAssignments((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      console.error("Delete Assignment Error:", err);
+      alert(err.message);
+    }
   };
 
   return (
@@ -279,6 +293,7 @@ const StudentAssignments = () => {
             value={formData.groupId}
             onChange={handleInputChange}
             className="border p-2 rounded w-full"
+            required
             disabled={!formData.courseId || groups.length === 0}
           >
             <option value="">Select Group</option>
@@ -290,7 +305,7 @@ const StudentAssignments = () => {
           </select>
         </div>
 
-        {/* Content & File */}
+        {/* Content, File, Grade & Feedback */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="text"
@@ -309,8 +324,6 @@ const StudentAssignments = () => {
             className="border p-2 rounded w-full"
           />
         </div>
-
-        {/* Grade & Feedback */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="number"
