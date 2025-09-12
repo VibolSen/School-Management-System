@@ -9,7 +9,7 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    const role = searchParams.get("role"); // Optional role filter
+    const role = searchParams.get("role");
 
     if (id) {
       const user = await prisma.user.findUnique({
@@ -17,11 +17,10 @@ export async function GET(req) {
         include: { role: true, courses: true },
       });
 
-      if (!user) {
+      if (!user)
         return new Response(JSON.stringify({ error: "User not found" }), {
           status: 404,
         });
-      }
 
       return new Response(JSON.stringify(user), {
         status: 200,
@@ -29,17 +28,9 @@ export async function GET(req) {
       });
     }
 
-    // --- THIS IS THE MODIFIED SECTION ---
-    const whereClause = {};
-    if (role) {
-      whereClause.role = {
-        name: {
-          equals: role,
-          mode: "insensitive", // ✅ This makes the search case-insensitive
-        },
-      };
-    }
-    // --- END OF MODIFICATION ---
+    const whereClause = role
+      ? { role: { is: { name: { equals: role, mode: "insensitive" } } } }
+      : {};
 
     const users = await prisma.user.findMany({
       where: whereClause,
@@ -61,13 +52,11 @@ export async function GET(req) {
 // CREATE User
 export async function POST(req) {
   const data = await req.json();
-
-  if (!data.email || !data.password || !data.roleId) {
+  if (!data.email || !data.password || !data.roleId)
     return new Response(
       JSON.stringify({ error: "Email, password, and roleId are required" }),
       { status: 400 }
     );
-  }
 
   try {
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
@@ -82,13 +71,11 @@ export async function POST(req) {
           ? new Date(data.enrollmentDate)
           : null,
         isActive: data.isActive ?? true,
-        courses: data.courseIds
-          ? {
-              connect: data.courseIds.map((id) => ({ id })),
-            }
+        courses: data.courseIds?.length
+          ? { connect: data.courseIds.map((id) => ({ id })) }
           : undefined,
       },
-      include: { role: true },
+      include: { role: true, courses: true },
     });
 
     return new Response(JSON.stringify(user), {
@@ -97,12 +84,12 @@ export async function POST(req) {
     });
   } catch (error) {
     console.error("Create user error:", error);
-    if (error.code === "P2002" && error.meta?.target?.includes("email")) {
+    if (error.code === "P2002" && error.meta?.target?.includes("email"))
       return new Response(
         JSON.stringify({ error: "A user with this email already exists." }),
         { status: 409 }
       );
-    }
+
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
     });
@@ -139,16 +126,14 @@ export async function PUT(req) {
       updatePayload.role = { connect: { id: data.roleId } };
     }
 
-    if (data.courseIds) {
-      updatePayload.courses = {
-        set: data.courseIds.map((id) => ({ id })),
-      };
+    if (data.courseIds?.length) {
+      updatePayload.courses = { set: data.courseIds.map((id) => ({ id })) };
     }
 
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updatePayload,
-      include: { role: true },
+      include: { role: true, courses: true },
     });
 
     return new Response(JSON.stringify(updatedUser), {
@@ -173,9 +158,7 @@ export async function DELETE(req) {
     });
 
   try {
-    const deletedUser = await prisma.user.delete({
-      where: { id },
-    });
+    const deletedUser = await prisma.user.delete({ where: { id } });
     return new Response(JSON.stringify(deletedUser), {
       status: 200,
       headers: { "Content-Type": "application/json" },

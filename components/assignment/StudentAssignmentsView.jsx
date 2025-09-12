@@ -1,10 +1,11 @@
-// StudentAssignmentView.jsx
+// FILE: components/assignment/StudentAssignmentsView.jsx
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import AssignmentsTable from "./AssignmentsTable";
 import StudentAssignmentModal from "./StudentAssignmentModal";
-import Notification from "@/components/Notification"; // Assuming you have a Notification component
+import Notification from "@/components/Notification"; // Assuming a notification component
 
 export default function StudentAssignmentView() {
   const [assignments, setAssignments] = useState([]);
@@ -17,7 +18,6 @@ export default function StudentAssignmentView() {
     type: "",
   });
 
-  // --- Utility Functions ---
   const showMessage = (message, type = "success") => {
     setNotification({ show: true, message, type });
     setTimeout(
@@ -26,17 +26,15 @@ export default function StudentAssignmentView() {
     );
   };
 
-  // --- API Calls ---
   const fetchAssignments = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/assignments");
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) throw new Error("Failed to load assignments.");
       const data = await res.json();
       setAssignments(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Error fetching assignments:", err);
-      showMessage("Failed to load assignments.", "error");
+      showMessage(err.message, "error");
       setAssignments([]);
     } finally {
       setIsLoading(false);
@@ -47,7 +45,6 @@ export default function StudentAssignmentView() {
     fetchAssignments();
   }, [fetchAssignments]);
 
-  // --- Event Handlers ---
   const handleAddClick = () => {
     setEditingAssignment(null);
     setIsModalOpen(true);
@@ -59,24 +56,24 @@ export default function StudentAssignmentView() {
   };
 
   const handleDeleteClick = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this assignment?"))
+    if (
+      !window.confirm(
+        "This will delete the assignment for all students in the group. Are you sure?"
+      )
+    )
       return;
-    setIsLoading(true);
     try {
       const res = await fetch(`/api/assignments?id=${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({})); // Handle empty error responses
         throw new Error(errData.error || "Failed to delete assignment");
       }
-      setAssignments((prev) => prev.filter((a) => a.id !== id));
-      showMessage("Assignment deleted successfully!");
+      showMessage("Assignment deleted for all students successfully!");
+      fetchAssignments(); // Refresh the list
     } catch (err) {
-      console.error("Delete Assignment Error:", err);
       showMessage(err.message, "error");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -86,24 +83,17 @@ export default function StudentAssignmentView() {
   };
 
   const handleSaveAssignment = async (formData) => {
-    setIsLoading(true);
     try {
-      let res;
-      if (editingAssignment) {
-        // This is an update (PUT)
-        res = await fetch(`/api/assignments?id=${editingAssignment.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-      } else {
-        // This is a creation (POST)
-        res = await fetch("/api/assignments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-      }
+      const url = editingAssignment
+        ? `/api/assignments?id=${editingAssignment.id}`
+        : "/api/assignments";
+      const method = editingAssignment ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
       if (!res.ok) {
         const errorData = await res.json();
@@ -111,14 +101,14 @@ export default function StudentAssignmentView() {
       }
 
       showMessage(
-        `Assignment ${editingAssignment ? "updated" : "added"} successfully!`
+        `Assignment ${
+          editingAssignment ? "details updated" : "created"
+        } successfully!`
       );
-      fetchAssignments(); // Re-fetch all assignments to get the latest data
+      fetchAssignments();
     } catch (err) {
-      console.error("Save Assignment Error:", err);
       showMessage(err.message, "error");
     } finally {
-      setIsLoading(false);
       handleCloseModal();
     }
   };
@@ -129,18 +119,13 @@ export default function StudentAssignmentView() {
         show={notification.show}
         message={notification.message}
         type={notification.type}
-        onClose={() => setNotification({ show: false, message: "", type: "" })}
       />
-
       <div>
-        <h1 className="text-3xl font-bold text-slate-800">
-          Assignments
-        </h1>
+        <h1 className="text-3xl font-bold text-slate-800">Assignments</h1>
         <p className="text-slate-500 mt-1">
           Manage all student and group assignments.
         </p>
       </div>
-
       <AssignmentsTable
         assignments={assignments}
         onAddClick={handleAddClick}
@@ -148,14 +133,12 @@ export default function StudentAssignmentView() {
         onDeleteClick={handleDeleteClick}
         isLoading={isLoading}
       />
-
       {isModalOpen && (
         <StudentAssignmentModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSave={handleSaveAssignment}
           assignmentToEdit={editingAssignment}
-          isLoading={isLoading}
         />
       )}
     </div>

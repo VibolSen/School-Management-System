@@ -26,10 +26,6 @@ export default function AssignmentsTable({
   isLoading = false,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({
-    key: "submittedAt",
-    direction: "descending",
-  });
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter(
@@ -42,36 +38,19 @@ export default function AssignmentsTable({
           .includes(searchTerm.toLowerCase()) ||
         (a.assignment?.course?.title || "")
           .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (a.groupAssignment?.group?.name || "")
+          .toLowerCase()
           .includes(searchTerm.toLowerCase())
     );
   }, [assignments, searchTerm]);
-
-  const sortedAssignments = useMemo(() => {
-    if (!sortConfig.key) return filteredAssignments;
-    return [...filteredAssignments].sort((a, b) => {
-      // Access nested properties for sorting
-      const aValue = sortConfig.key.split(".").reduce((o, i) => o?.[i], a);
-      const bValue = sortConfig.key.split(".").reduce((o, i) => o?.[i], b);
-
-      if (aValue < bValue) return sortConfig.direction === "ascending" ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === "ascending" ? 1 : -1;
-      return 0;
-    });
-  }, [filteredAssignments, sortConfig]);
-
-  const handleSort = (key) => {
-    let direction = "ascending";
-    if (sortConfig.key === key && sortConfig.direction === "ascending")
-      direction = "descending";
-    setSortConfig({ key, direction });
-  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
         <input
           type="text"
-          placeholder="Search assignments..."
+          placeholder="Search..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="border p-2 rounded w-1/3"
@@ -83,30 +62,15 @@ export default function AssignmentsTable({
           Add Assignment
         </button>
       </div>
-
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
-              <th
-                className="p-3 cursor-pointer"
-                onClick={() => handleSort("assignment.title")}
-              >
-                Title
-              </th>
-              <th className="p-3">Student/Group</th>
-              <th
-                className="p-3 cursor-pointer"
-                onClick={() => handleSort("assignment.course.title")}
-              >
-                Course
-              </th>
-              <th
-                className="p-3 cursor-pointer"
-                onClick={() => handleSort("assignment.dueDate")}
-              >
-                Due Date
-              </th>
+              <th className="p-3">Title</th>
+              <th className="p-3">Course</th>
+              <th className="p-3">Student</th>
+              <th className="p-3">Group</th>
+              <th className="p-3">Due Date</th>
               <th className="p-3">Status</th>
               <th className="p-3">Grade</th>
               <th className="p-3">Actions</th>
@@ -115,27 +79,28 @@ export default function AssignmentsTable({
           <tbody className="divide-y">
             {isLoading && assignments.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center p-4">
+                <td colSpan="8" className="text-center p-4">
                   Loading...
                 </td>
               </tr>
-            ) : sortedAssignments.length === 0 ? (
+            ) : filteredAssignments.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center p-4">
+                <td colSpan="8" className="text-center p-4">
                   No assignments found.
                 </td>
               </tr>
             ) : (
-              sortedAssignments.map((a) => (
+              filteredAssignments.map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50">
                   <td className="p-3 font-medium">
                     {a.assignment?.title || "N/A"}
                   </td>
                   <td className="p-3">
-                    {a.student?.name || a.groupAssignment?.group?.name || "N/A"}
-                  </td>
-                  <td className="p-3">
                     {a.assignment?.course?.title || "N/A"}
+                  </td>
+                  <td className="p-3">{a.student?.name || "N/A"}</td>
+                  <td className="p-3">
+                    {a.groupAssignment?.group?.name || "N/A"}
                   </td>
                   <td className="p-3">
                     {a.assignment?.dueDate

@@ -1,110 +1,48 @@
+// FILE: app/api/assignments/route.js
+
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const parseDate = (d) => (d ? new Date(d) : null);
-// ===== GET =====
+
+// ===== GET Handler (Handles fetch requests) =====
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    const statusId = searchParams.get("statusId");
-    const courseId = searchParams.get("courseId");
 
-    // ===== Get single assignment by ID =====
     if (id) {
-      const assignment = await prisma.studentAssignment.findUnique({
+      // Get a single student's submission details
+      const studentAssignment = await prisma.studentAssignment.findUnique({
         where: { id },
         include: {
-          assignment: {
-            include: {
-              activity: true, // get activity name
-              course: true, // get course title
-            },
-          },
-          student: true, // get student name
-          groupAssignment: { include: { group: true } }, // get group name
-          status: true, // get status name
+          assignment: { include: { course: true } },
+          student: true,
+          groupAssignment: { include: { group: true } },
+          status: true,
         },
       });
-
-      if (!assignment) {
+      if (!studentAssignment)
         return new Response(JSON.stringify({ error: "Assignment not found" }), {
           status: 404,
         });
-      }
-
-      // Map fields: replace IDs with names where possible
-      const mapped = {
-        ...assignment,
-        assignment: {
-          ...assignment.assignment,
-          activityName:
-            assignment.assignment?.activity?.name ||
-            assignment.assignment?.activity?.title ||
-            null,
-          courseName: assignment.assignment?.course?.title || null,
-        },
-        studentName: assignment.student?.name || null,
-        groupName: assignment.groupAssignment?.group?.name || null,
-        statusName: assignment.status?.name || null,
-      };
-
-      return new Response(JSON.stringify(mapped), {
+      return new Response(JSON.stringify(studentAssignment), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // ===== Build filters for multiple assignments =====
-    const where = {};
-
-    if (statusId) where.statusId = statusId;
-
-    if (courseId) {
-      const courseAssignments = await prisma.assignment.findMany({
-        where: { courseId },
-        select: { id: true },
-      });
-
-      const assignmentIds = courseAssignments.map((a) => a.id).filter(Boolean);
-
-      if (assignmentIds.length === 0) {
-        return new Response(JSON.stringify([]), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-
-      where.assignmentId = { in: assignmentIds };
-    }
-
-    // ===== Fetch all student assignments =====
+    // Get all student assignment records for the main table
     const assignments = await prisma.studentAssignment.findMany({
-      where,
       include: {
-        assignment: { include: { activity: true, course: true } },
+        assignment: { include: { course: true } },
         student: true,
         groupAssignment: { include: { group: true } },
         status: true,
       },
-      orderBy: { submittedAt: "desc" },
+      // ✅ FIX: The problematic orderBy clause that causes crashes with null dates has been removed.
     });
-
-    // Map IDs to names for all assignments
-    const mappedAssignments = assignments.map((a) => ({
-      ...a,
-      assignment: {
-        ...a.assignment,
-        activityName:
-          a.assignment?.activity?.name || a.assignment?.activity?.title || null,
-        courseName: a.assignment?.course?.title || null,
-      },
-      studentName: a.student?.name || null,
-      groupName: a.groupAssignment?.group?.name || null,
-      statusName: a.status?.name || null,
-    }));
-
-    return new Response(JSON.stringify(mappedAssignments), {
+    return new Response(JSON.stringify(assignments), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -116,77 +54,55 @@ export async function GET(req) {
   }
 }
 
-// ===== POST =====
+// ===== POST Handler (Handles creating new assignments) =====
 export async function POST(req) {
   try {
     const data = await req.json();
+    const { title, description, dueDate, courseId, groupId, statusId } = data;
 
-    // Minimal validation
-    if (!data.statusId)
-      return new Response(JSON.stringify({ error: "statusId is required" }), {
-        status: 400,
-      });
-    if (!data.courseId)
-      return new Response(JSON.stringify({ error: "courseId is required" }), {
-        status: 400,
-      });
-    if (!data.activityId)
-      return new Response(JSON.stringify({ error: "activityId is required" }), {
-        status: 400,
-      });
-    if (!data.title)
-      return new Response(JSON.stringify({ error: "title is required" }), {
-        status: 400,
-      });
-
-    // Create Assignment
-    const newAssignment = await prisma.assignment.create({
-      data: {
-        title: data.title,
-        description: data.description || null,
-        dueDate: parseDate(data.dueDate),
-        courseId: data.courseId,
-        activityId: data.activityId,
-      },
-    });
-
-    // Create StudentAssignment
-    const payload = {
-      assignmentId: newAssignment.id,
-      studentId: data.studentId || null,
-      groupAssignmentId: data.groupId || null,
-      statusId: data.statusId,
-      submittedAt: parseDate(data.submittedAt) || new Date(),
-      content: data.content?.trim() || null,
-      fileUrl: data.fileUrl?.trim() || null,
-      grade:
-        data.grade !== "" && data.grade !== undefined
-          ? parseFloat(data.grade)
-          : null,
-      feedback: data.feedback?.trim() || null,
-    };
-
-    // Ensure either studentId or groupAssignmentId exists
-    if (!payload.studentId && !payload.groupAssignmentId)
+    if (!title || !courseId || !groupId || !statusId) {
       return new Response(
-        JSON.stringify({ error: "studentId or groupId is required" }),
+        JSON.stringify({
+          error: "Title, Course, Group, and Status are required.",
+        }),
         { status: 400 }
       );
+    }
 
-    const newStudentAssignment = await prisma.studentAssignment.create({
-      data: payload,
-      include: {
-        assignment: true,
-        student: true,
-        groupAssignment: { include: { group: true } },
-        status: true,
-      },
+    const groupMembers = await prisma.groupMember.findMany({
+      where: { groupId },
+      select: { studentId: true },
+    });
+    if (groupMembers.length === 0) {
+      return new Response(
+        JSON.stringify({
+          error: "The selected group has no students to assign.",
+        }),
+        { status: 400 }
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const newAssignment = await tx.assignment.create({
+        data: { title, description, dueDate: parseDate(dueDate), courseId },
+      });
+      const groupAssignment = await tx.groupAssignment.create({
+        data: { assignmentId: newAssignment.id, groupId },
+      });
+      await tx.studentAssignment.createMany({
+        data: groupMembers.map((member) => ({
+          assignmentId: newAssignment.id,
+          studentId: member.studentId,
+          groupAssignmentId: groupAssignment.id,
+          statusId: statusId,
+        })),
+      });
     });
 
-    return new Response(JSON.stringify(newStudentAssignment), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ message: "Assignment created successfully." }),
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
@@ -195,46 +111,51 @@ export async function POST(req) {
   }
 }
 
-// ===== PUT =====
+// ===== PUT Handler (Handles updating/grading submissions) =====
 export async function PUT(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const id = searchParams.get("id"); // StudentAssignment ID
     if (!id)
       return new Response(JSON.stringify({ error: "ID required" }), {
         status: 400,
       });
 
     const data = await req.json();
-    const updateData = {
-      statusId: data.statusId,
-      submittedAt: parseDate(data.submittedAt),
-      content: data.content?.trim() || null,
-      fileUrl: data.fileUrl?.trim() || null,
-      grade:
-        data.grade !== "" && data.grade !== undefined
-          ? parseFloat(data.grade)
-          : null,
-      feedback: data.feedback?.trim() || null,
-    };
-    if (data.groupId !== undefined) updateData.groupAssignmentId = data.groupId;
-    if (data.studentId !== undefined) updateData.studentId = data.studentId;
-
-    const updatedAssignment = await prisma.studentAssignment.update({
+    const studentAssignment = await prisma.studentAssignment.findUnique({
       where: { id },
-      data: updateData,
-      include: {
-        assignment: true,
-        student: true,
-        groupAssignment: { include: { group: true } },
-        status: true,
-      },
+    });
+    if (!studentAssignment)
+      return new Response(JSON.stringify({ error: "Submission not found" }), {
+        status: 404,
+      });
+
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.assignment.update({
+        where: { id: studentAssignment.assignmentId },
+        data: {
+          title: data.title,
+          description: data.description,
+          dueDate: parseDate(data.dueDate),
+          courseId: data.courseId,
+        },
+      });
+      return tx.studentAssignment.update({
+        where: { id },
+        data: {
+          statusId: data.statusId,
+          grade: data.grade ? parseFloat(data.grade) : null,
+          feedback: data.feedback,
+          content: data.content,
+          fileUrl: data.fileUrl,
+          submittedAt: data.submittedAt
+            ? parseDate(data.submittedAt)
+            : undefined,
+        },
+      });
     });
 
-    return new Response(JSON.stringify(updatedAssignment), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify(result), { status: 200 });
   } catch (error) {
     console.error("PUT error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
@@ -243,25 +164,36 @@ export async function PUT(req) {
   }
 }
 
-// ===== DELETE =====
+// ===== DELETE Handler (Handles deleting assignments) =====
 export async function DELETE(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    if (!id)
+    const studentAssignmentId = searchParams.get("id");
+    if (!studentAssignmentId)
       return new Response(JSON.stringify({ error: "ID required" }), {
         status: 400,
       });
 
-    const deletedAssignment = await prisma.studentAssignment.delete({
-      where: { id },
+    const studentAssignment = await prisma.studentAssignment.findUnique({
+      where: { id: studentAssignmentId },
+      select: { assignmentId: true },
     });
-    return new Response(JSON.stringify(deletedAssignment), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+
+    if (studentAssignment?.assignmentId) {
+      await prisma.assignment.delete({
+        where: { id: studentAssignment.assignmentId },
+      });
+    } else {
+      // Fallback for safety
+      await prisma.studentAssignment.delete({
+        where: { id: studentAssignmentId },
+      });
+    }
+
+    return new Response(null, { status: 204 });
   } catch (error) {
     console.error("DELETE error:", error);
+    if (error.code === "P2025") return new Response(null, { status: 204 });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
     });

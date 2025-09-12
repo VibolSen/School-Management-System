@@ -18,8 +18,6 @@ model Department {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relations
   courses     Course[]
 }
 
@@ -43,8 +41,6 @@ model User {
   contactNumber String?
   image         String?
   enrollmentDate DateTime?
-
-  // Relations
   courses                Course[]          @relation("CourseInstructor")
   attendances            Attendance[]
   taughtExams            Exam[]            @relation("ExamInstructor")
@@ -69,17 +65,17 @@ model Course {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  // Relations (no change needed here)
   attendances   Attendance[]
   materials     Material[]
   activities    Activity[]
   exams         Exam[]
   certificates  Certificate[]
-  groups        Group[]
-  qrCodeSessions QRCodeSession[]
   assignments    Assignment[]
-}
+  qrCodeSessions QRCodeSession[]
 
+  groupIds      String[] @db.ObjectId
+  groups        Group[]  @relation(fields: [groupIds], references: [id])
+}
 
 model Attendance {
   id             String               @id @map("_id") @default(auto()) @db.ObjectId
@@ -134,15 +130,17 @@ model Assignment {
   description String?
   dueDate     DateTime?
   courseId    String   @db.ObjectId
-  activityId  String?  @db.ObjectId      // make optional
+  activityId  String?  @db.ObjectId
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  course      Course    @relation(fields: [courseId], references: [id])
-  activity    Activity? @relation(fields: [activityId], references: [id]) // make optional
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  activity    Activity? @relation(fields: [activityId], references: [id])
+  
   studentAssignments StudentAssignment[]
   groupAssignments   GroupAssignment[]
 }
+
 model Exam {
   id           String    @id @map("_id") @default(auto()) @db.ObjectId
   title        String
@@ -170,8 +168,8 @@ model GroupAssignment {
   groupId      String   @db.ObjectId
   assignedAt   DateTime @default(now())
 
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
-  group        Group      @relation(fields: [groupId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  group        Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
   studentAssignments StudentAssignment[]
 
   @@unique([assignmentId, groupId])
@@ -189,13 +187,12 @@ model StudentAssignment {
   feedback          String?
   statusId          String   @default("ASSIGNED") @db.ObjectId
 
-  assignment        Assignment       @relation(fields: [assignmentId], references: [id])
-  student           User?            @relation(fields: [studentId], references: [id])
-  groupAssignment   GroupAssignment? @relation(fields: [groupAssignmentId], references: [id])
+  assignment        Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student           User?            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  groupAssignment   GroupAssignment? @relation(fields: [groupAssignmentId], references: [id], onDelete: Cascade)
   status            AttendanceStatusEnum @relation(fields: [statusId], references: [id])
 
   @@unique([assignmentId, studentId])
-  @@unique([assignmentId, groupAssignmentId])
 }
 
 model Certificate {
@@ -297,12 +294,13 @@ model Group {
   id          String   @id @map("_id") @default(auto()) @db.ObjectId
   name        String
   description String?
-  courseId    String?  @db.ObjectId
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  course      Course?  @relation(fields: [courseId], references: [id])
+  
   members     GroupMember[]
   assignments GroupAssignment[]
+  courseIds   String[] @db.ObjectId
+  courses     Course[] @relation(fields: [courseIds], references: [id])
 }
 
 model GroupMember {

@@ -1,15 +1,17 @@
+// FILE: components/course/CourseManagementView.jsx
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import CourseTable from "@/components/course/CourseTable";
-import AddCourseModal from "@/components/course/AddCourseModal";
+import CourseTable from "./CourseTable";
+import AddCourseModal from "./AddCourseModal";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 const CourseManagementView = () => {
   const [courseList, setCourseList] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [allGroups, setAllGroups] = useState([]); // ✅ Add state for groups
+  const [allGroups, setAllGroups] = useState([]); // ✅ 1. Add state for groups
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [courseToDelete, setCourseToDelete] = useState(null);
@@ -25,18 +27,18 @@ const CourseManagementView = () => {
           fetch("/api/courses"),
           fetch("/api/users?role=Teacher"),
           fetch("/api/departments"),
-          fetch("/api/groups"), // ✅ Fetch all groups
+          fetch("/api/groups"), // ✅ 2. Fetch all groups
         ]);
 
       if (!coursesRes.ok) throw new Error("Failed to fetch courses");
       if (!teachersRes.ok) throw new Error("Failed to fetch teachers");
       if (!departmentsRes.ok) throw new Error("Failed to fetch departments");
-      if (!groupsRes.ok) throw new Error("Failed to fetch groups"); // ✅ Handle group fetch error
+      if (!groupsRes.ok) throw new Error("Failed to fetch groups");
 
       setCourseList(await coursesRes.json());
       setTeachers(await teachersRes.json());
       setDepartments(await departmentsRes.json());
-      setAllGroups(await groupsRes.json()); // ✅ Set groups state
+      setAllGroups(await groupsRes.json()); // ✅ 3. Set groups state
     } catch (err) {
       console.error("Failed to fetch data:", err);
       setError(err.message);
@@ -75,7 +77,7 @@ const CourseManagementView = () => {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete course");
-      fetchData(); // Refresh list from server
+      fetchData();
       setCourseToDelete(null);
     } catch (err) {
       setError(err.message);
@@ -92,6 +94,7 @@ const CourseManagementView = () => {
       const res = await fetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
+        // ✅ 4. The courseData object now correctly includes groupIds
         body: JSON.stringify(courseData),
       });
 
@@ -100,7 +103,7 @@ const CourseManagementView = () => {
         throw new Error(errorData.error || "Failed to save course");
       }
 
-      fetchData(); // Re-fetch all data to ensure consistency
+      fetchData();
       handleCloseModal();
     } catch (err) {
       console.error("Failed to save course:", err);
@@ -108,11 +111,14 @@ const CourseManagementView = () => {
     }
   };
 
-  // ... rest of the component is the same
+  if (loading) {
+    return <div className="text-center py-10">Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Course Management</h1>
+      <h1 className="text-3xl font-bold text-slate-800">Course Management</h1>
+
       {error && (
         <div className="bg-red-100 text-red-700 p-3 rounded">{error}</div>
       )}
@@ -131,7 +137,7 @@ const CourseManagementView = () => {
         courseToEdit={editingCourse}
         teachers={teachers}
         departments={departments}
-        allGroups={allGroups} // ✅ Pass groups to the modal
+        allGroups={allGroups} // ✅ 5. Pass groups to the modal
       />
 
       <ConfirmationModal

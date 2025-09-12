@@ -1,12 +1,11 @@
-// FILE: components/assignments/StudentDashboardView.jsx
+// FILE: components/assignment/StudentDashboardView.jsx
 
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation"; // Use Next.js's App Router hook
+import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext"; // Your user context
-import AssignmentCard from "./AssignmentCard";
-// import AssignmentCard from "@/components/assignment/AssignmentCard"; // We can reuse the card from before
+import AssignmentCard from "./AssignmentCard"; // Corrected path
 
 const StudentDashboardView = () => {
   const { user } = useUser();
@@ -34,14 +33,28 @@ const StudentDashboardView = () => {
     fetchAssignments();
   }, []);
 
-  // Filter assignments for the current student
   const studentAssignments = useMemo(() => {
+    // --- START OF DEBUGGING BLOCK ---
+    console.log("Filtering assignments...");
+    if (!user) {
+      console.log("Cannot filter: User object from context is missing.");
+      return [];
+    }
+    console.log("Logged-in user ID:", user.id);
+
+    if (assignments.length > 0) {
+      console.log(
+        "First assignment record's studentId:",
+        assignments[0].studentId
+      );
+    }
+    // --- END OF DEBUGGING BLOCK ---
+
     if (!user || !assignments) return [];
-    // Ensure you compare types correctly (e.g., both as strings)
+
     return assignments.filter((a) => String(a.studentId) === String(user.id));
   }, [user, assignments]);
 
-  // Navigate to the detail page on click
   const handleCardClick = (assignmentId) => {
     router.push(`/student/assignments/${assignmentId}`);
   };

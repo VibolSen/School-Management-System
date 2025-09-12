@@ -5,15 +5,17 @@ const prisma = new PrismaClient();
 const courseInclude = {
   instructor: true,
   department: true,
-  groups: { select: { id: true, name: true } }, // ✅ Include associated groups
+  groups: { select: { id: true, name: true } },
 };
 
-// ===== GET all courses or by ?id= =====
+// ===== GET all courses, by ?id=, or by ?departmentId= =====
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    const departmentId = searchParams.get("departmentId"); // ✅ ADD this line to read the department ID
 
+    // Handle request for a single course by its ID
     if (id) {
       const course = await prisma.course.findUnique({
         where: { id },
@@ -27,9 +29,19 @@ export async function GET(req) {
       return new Response(JSON.stringify(course), { status: 200 });
     }
 
+    // ✅ ADD this block to handle filtering by department
+    // This is the core of the fix.
+    const whereClause = {};
+    if (departmentId) {
+      whereClause.departmentId = departmentId;
+    }
+
+    // Fetch courses using the where clause (it will be empty if no filter is applied)
     const courses = await prisma.course.findMany({
+      where: whereClause, // ✅ APPLY the filter here
       include: courseInclude,
     });
+
     return new Response(JSON.stringify(courses), { status: 200 });
   } catch (error) {
     console.error("GET courses error:", error);
@@ -50,7 +62,6 @@ export async function POST(req) {
         title,
         instructorId,
         departmentId,
-        // ✅ Connect selected groups
         groups: {
           connect: groupIds.map((id) => ({ id })),
         },
@@ -86,7 +97,6 @@ export async function PUT(req) {
         title,
         instructorId,
         departmentId,
-        // ✅ Use `set` to sync the list of connected groups
         groups: Array.isArray(groupIds)
           ? {
               set: groupIds.map((id) => ({ id })),
@@ -116,7 +126,7 @@ export async function DELETE(req) {
     }
 
     await prisma.course.delete({ where: { id } });
-    return new Response(null, { status: 204 }); // Success, no content
+    return new Response(null, { status: 204 });
   } catch (error) {
     console.error("Delete course error:", error);
     return new Response(JSON.stringify({ error: error.message }), {

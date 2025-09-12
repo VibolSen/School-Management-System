@@ -1,15 +1,14 @@
-// FILE: components/assignments/AssignmentDetailView.jsx
+// FILE: components/assignment/AssignmentDetailView.jsx
 
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import SubmissionModal from "./SubmissionModal";
-import Notification from "@/components/Notification"; // Assuming you have this
+import Notification from "@/components/Notification";
 
 const AssignmentDetailView = ({ assignmentId }) => {
   const [assignment, setAssignment] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notification, setNotification] = useState({
     show: false,
@@ -30,10 +29,9 @@ const AssignmentDetailView = ({ assignmentId }) => {
     try {
       const res = await fetch(`/api/assignments?id=${assignmentId}`);
       if (!res.ok) throw new Error("Failed to fetch assignment details.");
-      const data = await res.json();
-      setAssignment(data);
+      setAssignment(await res.json());
     } catch (err) {
-      setError(err.message);
+      showMessage(err.message, "error");
     } finally {
       setIsLoading(false);
     }
@@ -45,12 +43,14 @@ const AssignmentDetailView = ({ assignmentId }) => {
 
   const handleSubmission = async (submissionData) => {
     try {
-      // Find the status ID for "Submitted" (this is a placeholder, adjust if needed)
-      // You might need to fetch statuses from your API to do this dynamically
-      const SUBMITTED_STATUS_ID = "clxh0f2t1000508l7hy7i9a2s"; // Replace with the actual ID for "Submitted"
+      // Find the status ID for "Submitted"
+      // In a real app, you'd fetch statuses and find the correct one.
+      const SUBMITTED_STATUS_ID = "YOUR_SUBMITTED_STATUS_ID"; // Replace with the actual ID
 
       const payload = {
-        ...submissionData,
+        ...assignment, // Keep existing data like grade, feedback
+        ...assignment.assignment, // Keep parent assignment data
+        ...submissionData, // Add the new content and fileUrl
         statusId: SUBMITTED_STATUS_ID,
         submittedAt: new Date().toISOString(),
       };
@@ -61,14 +61,11 @@ const AssignmentDetailView = ({ assignmentId }) => {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to submit.");
-      }
+      if (!res.ok) throw new Error("Failed to submit.");
 
       showMessage("Assignment submitted successfully!");
       setIsModalOpen(false);
-      fetchAssignmentDetails(); // Refresh data to show new status
+      fetchAssignmentDetails();
     } catch (err) {
       showMessage(err.message, "error");
     }
@@ -76,8 +73,6 @@ const AssignmentDetailView = ({ assignmentId }) => {
 
   if (isLoading)
     return <p className="text-center py-10">Loading assignment details...</p>;
-  if (error)
-    return <p className="text-center py-10 text-red-500">Error: {error}</p>;
   if (!assignment) return <p>Assignment not found.</p>;
 
   return (
@@ -88,11 +83,8 @@ const AssignmentDetailView = ({ assignmentId }) => {
         type={notification.type}
       />
       <div className="bg-white shadow-lg rounded-lg p-8">
-        {/* Header */}
         <div className="border-b pb-4 mb-6">
-          <h1 className="text-3xl font-bold text-slate-800">
-            {assignment.assignment?.title}
-          </h1>
+          <h1 className="text-3xl font-bold">{assignment.assignment?.title}</h1>
           <p className="text-slate-600 mt-1">
             Course: {assignment.assignment?.course?.title}
           </p>
@@ -101,70 +93,35 @@ const AssignmentDetailView = ({ assignmentId }) => {
             {new Date(assignment.assignment?.dueDate).toLocaleString()}
           </p>
         </div>
-
-        {/* Description */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-slate-700 mb-2">
-            Instructions
-          </h2>
+          <h2 className="text-xl font-semibold">Instructions</h2>
           <p className="text-slate-600 whitespace-pre-wrap">
-            {assignment.assignment?.description || "No instructions provided."}
+            {assignment.assignment?.description || "No instructions."}
           </p>
         </div>
-
-        {/* Submission Status */}
         <div className="bg-slate-50 p-4 rounded-lg">
-          <h2 className="text-xl font-semibold text-slate-700 mb-3">
-            My Submission
-          </h2>
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="font-semibold">Status:</span>{" "}
-              {assignment.status?.name}
-            </p>
-            <p>
-              <span className="font-semibold">Grade:</span>{" "}
-              {assignment.grade ?? "Not Graded"}
-            </p>
-            <p>
-              <span className="font-semibold">Feedback:</span>{" "}
-              {assignment.feedback || "No feedback yet."}
-            </p>
-            <p className="font-semibold">Submitted Content:</p>
-            <div className="p-3 bg-white border rounded-md text-slate-700">
-              <p>{assignment.content || "You haven't submitted anything."}</p>
-              {assignment.fileUrl && (
-                <a
-                  href={assignment.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline mt-2 inline-block"
-                >
-                  View Submitted File
-                </a>
-              )}
-            </div>
-          </div>
+          <h2 className="text-xl font-semibold mb-3">My Submission</h2>
+          <p>
+            <strong>Status:</strong> {assignment.status?.name}
+          </p>
+          <p>
+            <strong>Grade:</strong> {assignment.grade ?? "Not Graded"}
+          </p>
+          <p>
+            <strong>Feedback:</strong>{" "}
+            {assignment.feedback || "No feedback yet."}
+          </p>
         </div>
-
-        {/* Action Button */}
         <div className="mt-8 text-center">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-indigo-600 text-white font-bold px-8 py-3 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 shadow-lg"
-            // Disable button if already graded to prevent re-submission
+            className="bg-indigo-600 text-white font-bold px-8 py-3 rounded-lg"
             disabled={!!assignment.grade}
           >
             {assignment.content ? "Resubmit Assignment" : "Submit Assignment"}
           </button>
-          {!!assignment.grade && (
-            <p className="text-xs text-slate-500 mt-2">
-              This assignment has been graded and can no longer be edited.
-            </p>
-          )}
         </div>
       </div>
-
       <SubmissionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
