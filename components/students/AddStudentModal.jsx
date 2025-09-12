@@ -6,8 +6,8 @@ const initialFormState = {
   name: "",
   email: "",
   enrollmentDate: "",
-  password: "",       // Only for new students
-  isActive: true,     // Active/Inactive status
+  password: "", // Only for new students
+  isActive: true, // Active/Inactive status
 };
 
 const AddStudentModal = ({
@@ -32,7 +32,9 @@ const AddStudentModal = ({
         setFormData({
           name: studentToEdit.name,
           email: studentToEdit.email,
-          enrollmentDate: studentToEdit.enrollmentDate,
+          enrollmentDate: studentToEdit.enrollmentDate
+            ? new Date(studentToEdit.enrollmentDate).toISOString().split("T")[0]
+            : "",
           password: "",
           isActive: studentToEdit.isActive ?? true,
         });
@@ -76,14 +78,6 @@ const AddStudentModal = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const handleCourseChange = (courseId) => {
-    setSelectedCourseIds((prevIds) =>
-      prevIds.includes(courseId)
-        ? prevIds.filter((id) => id !== courseId)
-        : [...prevIds, courseId]
-    );
   };
 
   const handleSubmit = (e) => {
@@ -157,10 +151,14 @@ const AddStudentModal = ({
                 value={formData.name}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  errors.name ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                  errors.name
+                    ? "border-red-500 ring-1 ring-red-500"
+                    : "border-slate-300"
                 } focus:outline-none focus:ring-1 focus:ring-blue-500`}
               />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+              {errors.name && (
+                <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+              )}
             </div>
 
             {/* Email */}
@@ -174,10 +172,14 @@ const AddStudentModal = ({
                 value={formData.email}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  errors.email ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                  errors.email
+                    ? "border-red-500 ring-1 ring-red-500"
+                    : "border-slate-300"
                 } focus:outline-none focus:ring-1 focus:ring-blue-500`}
               />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+              )}
             </div>
 
             {/* Password */}
@@ -192,10 +194,14 @@ const AddStudentModal = ({
                   value={formData.password}
                   onChange={handleChange}
                   className={`w-full px-3 py-2 border rounded-md text-sm ${
-                    errors.password ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                    errors.password
+                      ? "border-red-500 ring-1 ring-red-500"
+                      : "border-slate-300"
                   } focus:outline-none focus:ring-1 focus:ring-blue-500`}
                 />
-                {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+                {errors.password && (
+                  <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+                )}
               </div>
             )}
 
@@ -205,16 +211,21 @@ const AddStudentModal = ({
                 Enrollment Date
               </label>
               <input
-  type="date"
-  name="enrollmentDate"
-  value={formData.enrollmentDate || ""}
-  onChange={handleChange}
-  className={`w-full px-3 py-2 border rounded-md text-sm ${
-    errors.enrollmentDate ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
-  } focus:outline-none focus:ring-1 focus:ring-blue-500`}
-/>
-
-              {errors.enrollmentDate && <p className="text-xs text-red-500 mt-1">{errors.enrollmentDate}</p>}
+                type="date"
+                name="enrollmentDate"
+                value={formData.enrollmentDate || ""}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-md text-sm ${
+                  errors.enrollmentDate
+                    ? "border-red-500 ring-1 ring-red-500"
+                    : "border-slate-300"
+                } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+              />
+              {errors.enrollmentDate && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.enrollmentDate}
+                </p>
+              )}
             </div>
 
             {/* Active Status */}
@@ -226,7 +237,10 @@ const AddStudentModal = ({
                 name="isActive"
                 value={formData.isActive ? "true" : "false"}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    isActive: e.target.value === "true",
+                  }))
                 }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
               >
@@ -262,7 +276,7 @@ const AddStudentModal = ({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedCourseIds(selectedCourseIds.filter(id => id !== course.id));
+                                handleCourseChange(course.id);
                               }}
                               className="text-blue-600 hover:text-blue-800 focus:outline-none"
                             >
@@ -292,11 +306,7 @@ const AddStudentModal = ({
                             <input
                               type="checkbox"
                               checked={selectedCourseIds.includes(course.id)}
-                              onChange={() =>
-                                setSelectedCourseIds(selectedCourseIds.includes(course.id)
-                                  ? selectedCourseIds.filter(id => id !== course.id)
-                                  : [...selectedCourseIds, course.id])
-                              }
+                              onChange={() => handleCourseChange(course.id)}
                               className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                             />
                             <span className="ml-3">{course.title}</span>
@@ -304,7 +314,9 @@ const AddStudentModal = ({
                         </li>
                       ))}
                       {filteredCourses.length === 0 && (
-                        <p className="text-center py-2 text-sm text-slate-500">No courses found.</p>
+                        <p className="text-center py-2 text-sm text-slate-500">
+                          No courses found.
+                        </p>
                       )}
                     </ul>
                   </div>

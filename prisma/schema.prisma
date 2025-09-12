@@ -43,7 +43,6 @@ model User {
   contactNumber String?
   image         String?
   enrollmentDate DateTime?
-  studentStatusId String? @db.ObjectId
 
   // Relations
   courses                Course[]          @relation("CourseInstructor")
@@ -146,26 +145,24 @@ model Assignment {
   studentAssignments StudentAssignment[]
   groupAssignments   GroupAssignment[]
 }
-
-
 model Exam {
-  id           String           @id @map("_id") @default(auto()) @db.ObjectId
+  id           String    @id @map("_id") @default(auto()) @db.ObjectId
   title        String
   description  String?
-  instructorId String           @db.ObjectId
-  courseId     String?          @db.ObjectId
+  instructorId String    @db.ObjectId
+  courseId     String?   @db.ObjectId
   startDate    DateTime?
   endDate      DateTime?
   duration     Int?
-  passingScore Float            @default(70)
-  maxAttempts  Int              @default(1)
-  isRandom     Boolean          @default(false)
-  isShuffled   Boolean          @default(false)
-  typeId       String           @default("ANYTIME") @db.ObjectId
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  instructor   User             @relation("ExamInstructor", fields: [instructorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  course       Course?          @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  passingScore Float     @default(70)
+  maxAttempts  Int       @default(1)
+  isRandom     Boolean   @default(false)
+  isShuffled   Boolean   @default(false)
+  type         String    @default("ANYTIME")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  instructor   User      @relation("ExamInstructor", fields: [instructorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course       Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   certificates Certificate[]
 }
 

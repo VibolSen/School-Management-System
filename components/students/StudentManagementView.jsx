@@ -11,65 +11,59 @@ const showMessage = (message, type = "success") => {
 export default function StudentManagementView() {
   const [students, setStudents] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [studentStatuses, setStudentStatuses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-const fetchData = useCallback(async () => {
-  setIsLoading(true);
-  setError(null);
-  try {
-    // 1. Fetch all users
-    const resUsers = await fetch("/api/users");
-    if (!resUsers.ok) throw new Error(`HTTP error! status: ${resUsers.status}`);
-    const users = await resUsers.json();
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 1. Fetch all users
+      const resUsers = await fetch("/api/users");
+      if (!resUsers.ok)
+        throw new Error(`HTTP error! status: ${resUsers.status}`);
+      const users = await resUsers.json();
 
-    // 2. Fetch roles
-    const resRoles = await fetch("/api/roles");
-    if (!resRoles.ok) throw new Error(`HTTP error! status: ${resRoles.status}`);
-    const rolesData = await resRoles.json();
-    setRoles(rolesData);
+      // 2. Fetch roles
+      const resRoles = await fetch("/api/roles");
+      if (!resRoles.ok)
+        throw new Error(`HTTP error! status: ${resRoles.status}`);
+      const rolesData = await resRoles.json();
+      setRoles(rolesData);
 
-    // 🔑 Find the "Students" role ID
-    const studentRole = rolesData.find(
-      (role) => role.name?.toLowerCase() === "students"
-    );
+      // 🔑 Find the "Students" role ID
+      const studentRole = rolesData.find(
+        (role) => role.name?.toLowerCase() === "students"
+      );
 
-    // 3. Fetch student statuses
-    const resStatuses = await fetch("/api/student-statuses");
-    if (!resStatuses.ok)
-      throw new Error(`HTTP error! status: ${resStatuses.status}`);
-    setStudentStatuses(await resStatuses.json());
+      // 3. Fetch courses
+      const resCourses = await fetch("/api/courses");
+      if (!resCourses.ok)
+        throw new Error(`HTTP error! status: ${resCourses.status}`);
+      setCourses(await resCourses.json());
 
-    // 4. Fetch courses
-    const resCourses = await fetch("/api/courses");
-    if (!resCourses.ok)
-      throw new Error(`HTTP error! status: ${resCourses.status}`);
-    setCourses(await resCourses.json());
+      // 4. Filter only students
+      const studentsOnly = users
+        .filter((user) => user.roleId === studentRole?.id) // ✅ compare with actual ID
+        .map((user) => {
+          const role = rolesData.find((r) => r.id === user.roleId) || {
+            name: "N/A",
+          };
+          return { ...user, role };
+        });
 
-    // 5. Filter only students
-    const studentsOnly = users
-      .filter((user) => user.roleId === studentRole?.id) // ✅ compare with actual ID
-      .map((user) => {
-        const role = rolesData.find((r) => r.id === user.roleId) || {
-          name: "N/A",
-        };
-        return { ...user, role };
-      });
-
-    setStudents(studentsOnly);
-  } catch (err) {
-    console.error("Failed to fetch data:", err);
-    setError("Failed to load data.");
-    showMessage("Failed to load data.", "error");
-  } finally {
-    setIsLoading(false);
-  }
-}, []);
-
+      setStudents(studentsOnly);
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+      setError("Failed to load data.");
+      showMessage("Failed to load data.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -86,22 +80,24 @@ const fetchData = useCallback(async () => {
   };
 
   const handleDeleteClick = async (studentId) => {
-    if (!window.confirm("Are you sure you want to delete this student?")) return;
-  
+    if (!window.confirm("Are you sure you want to delete this student?"))
+      return;
+
     try {
-      const res = await fetch(`/api/users?id=${studentId}`, { method: "DELETE" });
+      const res = await fetch(`/api/users?id=${studentId}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || `HTTP error! status: ${res.status}`);
       }
-      setStudents(prev => prev.filter(s => s.id !== studentId));
+      setStudents((prev) => prev.filter((s) => s.id !== studentId));
       showMessage("Student deleted successfully!");
     } catch (err) {
       console.error("Failed to delete student:", err);
       showMessage(`Failed to delete student: ${err.message}`, "error");
     }
   };
-  
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -114,25 +110,31 @@ const fetchData = useCallback(async () => {
       const apiData = {
         name: studentData.name,
         email: studentData.email,
+        isActive: studentData.isActive, // Pass active status
+        enrollmentDate: studentData.enrollmentDate, // Pass enrollment date
       };
-  
+
       if (!editingStudent && studentData.password) {
         apiData.password = studentData.password;
       }
-  
-      if (studentData.roleId) {
-        apiData.roleId = studentData.roleId; // "students"
+
+      // Find the student role ID to assign it automatically
+      const studentRole = roles.find(
+        (role) => role.name?.toLowerCase() === "students"
+      );
+      if (studentRole) {
+        apiData.roleId = studentRole.id;
+      } else if (!editingStudent) {
+        console.error("Student role not found. Cannot create new student.");
+        showMessage("Error: 'Students' role not found.", "error");
+        return;
       }
-  
-      if (studentData.studentStatusId) {
-        apiData.studentStatusId = studentData.studentStatusId;
-      }
-  
+
       // Only send courseIds if they exist
       if (studentData.courseIds?.length) {
         apiData.courseIds = studentData.courseIds;
       }
-  
+
       let res;
       if (editingStudent) {
         res = await fetch(`/api/users?id=${editingStudent.id}`, {
@@ -147,19 +149,28 @@ const fetchData = useCallback(async () => {
           body: JSON.stringify(apiData),
         });
       }
-  
+
       const contentType = res.headers.get("content-type");
       let data;
       if (contentType && contentType.includes("application/json")) {
         data = await res.json();
       } else {
-        throw new Error(`Expected JSON, but got ${res.status} ${res.statusText}`);
+        // Handle cases where the response might not be JSON (e.g., empty response on success)
+        if (res.ok) {
+          data = {}; // Assume success if response is ok but not JSON
+        } else {
+          throw new Error(
+            `Expected JSON, but got ${res.status} ${res.statusText}`
+          );
+        }
       }
-  
+
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-  
-      showMessage(`Student ${editingStudent ? "updated" : "added"} successfully!`);
-      fetchData();
+
+      showMessage(
+        `Student ${editingStudent ? "updated" : "added"} successfully!`
+      );
+      fetchData(); // Refresh data
     } catch (err) {
       console.error("Failed to save student:", err);
       showMessage(`Failed to save student: ${err.message}`, "error");
@@ -167,22 +178,28 @@ const fetchData = useCallback(async () => {
       handleCloseModal();
     }
   };
-  
 
-  if (isLoading) return <p className="text-center py-10">Loading student data...</p>;
-  if (error) return (
-    <div className="text-center py-10 text-red-600">
-      <p>{error}</p>
-      <button onClick={fetchData} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-        Retry
-      </button>
-    </div>
-  );
+  if (isLoading)
+    return <p className="text-center py-10">Loading student data...</p>;
+  if (error)
+    return (
+      <div className="text-center py-10 text-red-600">
+        <p>{error}</p>
+        <button
+          onClick={fetchData}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-800">Student Management</h1>
+        <h1 className="text-3xl font-bold text-slate-800">
+          Student Management
+        </h1>
       </div>
 
       <StudentTable
@@ -200,7 +217,6 @@ const fetchData = useCallback(async () => {
           onSaveStudent={handleSaveStudent}
           studentToEdit={editingStudent}
           allCourses={courses}
-          allStudentStatuses={studentStatuses}
         />
       )}
     </div>

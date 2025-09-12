@@ -14,7 +14,7 @@ export async function GET(req) {
     if (id) {
       const user = await prisma.user.findUnique({
         where: { id },
-        include: { role: true },
+        include: { role: true, courses: true }, // Include courses for edit view
       });
 
       if (!user) {
@@ -34,7 +34,7 @@ export async function GET(req) {
 
     const users = await prisma.user.findMany({
       where: whereClause,
-      include: { role: true },
+      include: { role: true, courses: true }, // Include courses for table view
     });
 
     return new Response(JSON.stringify(users), {
@@ -43,18 +43,19 @@ export async function GET(req) {
     });
   } catch (err) {
     console.error("GET /users error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+    });
   }
 }
-
 
 // CREATE User
 export async function POST(req) {
   const data = await req.json();
 
-  if (!data.email || !data.password) {
+  if (!data.email || !data.password || !data.roleId) {
     return new Response(
-      JSON.stringify({ error: "Email and password are required" }),
+      JSON.stringify({ error: "Email, password, and roleId are required" }),
       { status: 400 }
     );
   }
@@ -68,7 +69,7 @@ export async function POST(req) {
         name: data.name || null,
         email: data.email,
         password: hashedPassword,
-        role: { connect: { id: data.roleId || "students" } },
+        role: { connect: { id: data.roleId } },
         department: data.department || null,
         position: data.position || null,
         contactNumber: data.contactNumber || null,
@@ -76,10 +77,12 @@ export async function POST(req) {
         enrollmentDate: data.enrollmentDate
           ? new Date(data.enrollmentDate)
           : null,
-        studentStatus: data.studentStatusId
-          ? { connect: { id: data.studentStatusId } }
+        isActive: data.isActive ?? true,
+        courses: data.courseIds
+          ? {
+              connect: data.courseIds.map((id) => ({ id })),
+            }
           : undefined,
-        isActive: true,
       },
       include: { role: true },
     });
@@ -90,7 +93,15 @@ export async function POST(req) {
     });
   } catch (error) {
     console.error("Create user error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    if (error.code === "P2002" && error.meta?.target?.includes("email")) {
+      return new Response(
+        JSON.stringify({ error: "A user with this email already exists." }),
+        { status: 409 }
+      );
+    }
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }
 
@@ -99,34 +110,47 @@ export async function PUT(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id)
-    return new Response(JSON.stringify({ error: "User ID required" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "User ID required" }), {
+      status: 400,
+    });
 
   const data = await req.json();
 
   try {
-    const updatePayload = { ...data, updatedAt: new Date() };
+    const updatePayload = {
+      name: data.name,
+      email: data.email,
+      isActive: data.isActive,
+      enrollmentDate: data.enrollmentDate
+        ? new Date(data.enrollmentDate)
+        : null,
+      updatedAt: new Date(),
+    };
 
-    // Hash password if provided
+    // Hash password ONLY if a new one is provided
     if (data.password) {
       updatePayload.password = await bcrypt.hash(data.password, SALT_ROUNDS);
-    } else {
-      delete updatePayload.password;
     }
 
     // Role update
     if (data.roleId) {
-      const roleExists = await prisma.roleEnum.findUnique({ where: { id: data.roleId } });
+      const roleExists = await prisma.roleEnum.findUnique({
+        where: { id: data.roleId },
+      });
       if (!roleExists) {
-        return new Response(JSON.stringify({ error: `Role '${data.roleId}' does not exist` }), { status: 400 });
+        return new Response(
+          JSON.stringify({ error: `Role '${data.roleId}' does not exist` }),
+          { status: 400 }
+        );
       }
       updatePayload.role = { connect: { id: data.roleId } };
-      delete updatePayload.roleId;
     }
 
-    // Student status update
-    if (data.studentStatusId) {
-      updatePayload.studentStatus = { connect: { id: data.studentStatusId } };
-      delete updatePayload.studentStatusId;
+    // Courses update (set replaces existing relations)
+    if (data.courseIds) {
+      updatePayload.courses = {
+        set: data.courseIds.map((id) => ({ id })),
+      };
     }
 
     const updatedUser = await prisma.user.update({
@@ -141,7 +165,9 @@ export async function PUT(req) {
     });
   } catch (error) {
     console.error("Update user error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }
 
@@ -150,12 +176,15 @@ export async function DELETE(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id)
-    return new Response(JSON.stringify({ error: "User ID required" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "User ID required" }), {
+      status: 400,
+    });
 
   try {
+    // Note: Depending on schema's onDelete rules, you might need to
+    // manually disconnect relations before deleting.
     const deletedUser = await prisma.user.delete({
       where: { id },
-      include: { role: true },
     });
     return new Response(JSON.stringify(deletedUser), {
       status: 200,
@@ -163,6 +192,8 @@ export async function DELETE(req) {
     });
   } catch (error) {
     console.error("Delete user error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
   }
 }
