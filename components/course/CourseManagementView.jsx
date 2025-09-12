@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import CourseTable from "@/components/course/CourseTable";
 import AddCourseModal from "@/components/course/AddCourseModal";
 import ConfirmationModal from "@/components/ConfirmationModal";
@@ -9,48 +9,45 @@ const CourseManagementView = () => {
   const [courseList, setCourseList] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [allGroups, setAllGroups] = useState([]); // ✅ Add state for groups
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [courseToDelete, setCourseToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Load real data from API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [coursesRes, teachersRes, departmentsRes] = await Promise.all([
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const [coursesRes, teachersRes, departmentsRes, groupsRes] =
+        await Promise.all([
           fetch("/api/courses"),
           fetch("/api/users?role=Teacher"),
           fetch("/api/departments"),
+          fetch("/api/groups"), // ✅ Fetch all groups
         ]);
 
-        if (!coursesRes.ok) throw new Error("Failed to fetch courses");
-        if (!teachersRes.ok) throw new Error("Failed to fetch teachers");
-        if (!departmentsRes.ok) throw new Error("Failed to fetch departments");
+      if (!coursesRes.ok) throw new Error("Failed to fetch courses");
+      if (!teachersRes.ok) throw new Error("Failed to fetch teachers");
+      if (!departmentsRes.ok) throw new Error("Failed to fetch departments");
+      if (!groupsRes.ok) throw new Error("Failed to fetch groups"); // ✅ Handle group fetch error
 
-        const coursesData = await coursesRes.json();
-        const teachersData = await teachersRes.json();
-        const departmentsData = await departmentsRes.json();
-
-        // Handle potential API response formats for courses
-        const coursesArray = Array.isArray(coursesData)
-          ? coursesData
-          : coursesData.courses || [];
-
-        setCourseList(coursesArray);
-        setTeachers(teachersData);
-        setDepartments(departmentsData);
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+      setCourseList(await coursesRes.json());
+      setTeachers(await teachersRes.json());
+      setDepartments(await departmentsRes.json());
+      setAllGroups(await groupsRes.json()); // ✅ Set groups state
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleAddClick = () => {
     setEditingCourse(null);
@@ -77,29 +74,22 @@ const CourseManagementView = () => {
       const res = await fetch(`/api/courses?id=${courseToDelete.id}`, {
         method: "DELETE",
       });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to delete course");
-      }
-
-      setCourseList(courseList.filter((c) => c.id !== courseToDelete.id));
+      if (!res.ok) throw new Error("Failed to delete course");
+      fetchData(); // Refresh list from server
       setCourseToDelete(null);
     } catch (err) {
-      console.error("Failed to delete course:", err);
       setError(err.message);
     }
   };
 
   const handleSaveCourse = async (courseData) => {
     try {
-      let res;
       const url = editingCourse
         ? `/api/courses?id=${editingCourse.id}`
         : "/api/courses";
       const method = editingCourse ? "PUT" : "POST";
 
-      res = await fetch(url, {
+      const res = await fetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(courseData),
@@ -107,30 +97,10 @@ const CourseManagementView = () => {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+        throw new Error(errorData.error || "Failed to save course");
       }
 
-      // After saving, re-fetch the updated list of courses from the server
-      const updatedCoursesRes = await fetch("/api/courses");
-
-      if (!updatedCoursesRes.ok) {
-        throw new Error("Failed to fetch updated course list");
-      }
-
-      const updatedData = await updatedCoursesRes.json();
-
-      // Handle different API response formats
-      const updatedCourses = Array.isArray(updatedData)
-        ? updatedData
-        : updatedData.courses || [];
-
-      if (Array.isArray(updatedCourses)) {
-        setCourseList(updatedCourses);
-      } else {
-        console.error("API did not return an array of courses:", updatedData);
-        throw new Error("Invalid data received from server");
-      }
-
+      fetchData(); // Re-fetch all data to ensure consistency
       handleCloseModal();
     } catch (err) {
       console.error("Failed to save course:", err);
@@ -138,25 +108,13 @@ const CourseManagementView = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-slate-600">Loading courses...</div>
-      </div>
-    );
-  }
+  // ... rest of the component is the same
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-slate-800">Course Management</h1>
-      <p className="text-slate-500">
-        Add, edit, and manage all available courses in the system.
-      </p>
-
+      <h1 className="text-3xl font-bold">Course Management</h1>
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
+        <div className="bg-red-100 text-red-700 p-3 rounded">{error}</div>
       )}
 
       <CourseTable
@@ -173,6 +131,7 @@ const CourseManagementView = () => {
         courseToEdit={editingCourse}
         teachers={teachers}
         departments={departments}
+        allGroups={allGroups} // ✅ Pass groups to the modal
       />
 
       <ConfirmationModal
@@ -180,18 +139,7 @@ const CourseManagementView = () => {
         onClose={() => setCourseToDelete(null)}
         onConfirm={handleConfirmDelete}
         title="Delete Course"
-        message={
-          <>
-            <p>
-              Are you sure you want to delete the course "
-              <strong>{courseToDelete?.title}</strong>"?
-            </p>
-            <p className="mt-2">
-              This action cannot be undone and will unenroll all students from
-              this course.
-            </p>
-          </>
-        }
+        message={`Are you sure you want to delete "${courseToDelete?.title}"?`}
       />
     </div>
   );

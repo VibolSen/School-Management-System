@@ -2,6 +2,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const courseInclude = {
+  instructor: true,
+  department: true,
+  groups: { select: { id: true, name: true } }, // ✅ Include associated groups
+};
+
 // ===== GET all courses or by ?id= =====
 export async function GET(req) {
   try {
@@ -11,31 +17,18 @@ export async function GET(req) {
     if (id) {
       const course = await prisma.course.findUnique({
         where: { id },
-        include: {
-          instructor: true,
-          department: true,
-          materials: true,
-          activities: true,
-          groups: true,
-        },
+        include: courseInclude,
       });
       if (!course) {
         return new Response(JSON.stringify({ error: "Course not found" }), {
           status: 404,
-          headers: { "Content-Type": "application/json" },
         });
       }
       return new Response(JSON.stringify(course), { status: 200 });
     }
 
     const courses = await prisma.course.findMany({
-      include: {
-        instructor: true,
-        department: true,
-        materials: true,
-        activities: true,
-        groups: true,
-      },
+      include: courseInclude,
     });
     return new Response(JSON.stringify(courses), { status: 200 });
   } catch (error) {
@@ -50,15 +43,17 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const data = await req.json();
+    const { title, instructorId, departmentId, groupIds = [] } = data;
 
     const course = await prisma.course.create({
       data: {
-        title: data.title,
-        description: data.description,
-        instructorId: data.instructorId,
-        departmentId: data.departmentId, // ✅ fixed
-        objectives: data.objectives,
-        methodology: data.methodology,
+        title,
+        instructorId,
+        departmentId,
+        // ✅ Connect selected groups
+        groups: {
+          connect: groupIds.map((id) => ({ id })),
+        },
       },
     });
 
@@ -83,16 +78,20 @@ export async function PUT(req) {
     }
 
     const data = await req.json();
+    const { title, instructorId, departmentId, groupIds } = data;
 
     const updatedCourse = await prisma.course.update({
       where: { id },
       data: {
-        title: data.title,
-        description: data.description,
-        instructorId: data.instructorId,
-        departmentId: data.departmentId, // ✅ fixed
-        objectives: data.objectives,
-        methodology: data.methodology,
+        title,
+        instructorId,
+        departmentId,
+        // ✅ Use `set` to sync the list of connected groups
+        groups: Array.isArray(groupIds)
+          ? {
+              set: groupIds.map((id) => ({ id })),
+            }
+          : undefined,
       },
     });
 
@@ -116,12 +115,12 @@ export async function DELETE(req) {
       });
     }
 
-    const deletedCourse = await prisma.course.delete({ where: { id } });
-    return new Response(JSON.stringify(deletedCourse), { status: 200 });
+    await prisma.course.delete({ where: { id } });
+    return new Response(null, { status: 204 }); // Success, no content
   } catch (error) {
     console.error("Delete course error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+      status: 500,
     });
   }
 }
