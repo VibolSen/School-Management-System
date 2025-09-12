@@ -14,7 +14,7 @@ export async function GET(req) {
     if (id) {
       const user = await prisma.user.findUnique({
         where: { id },
-        include: { role: true, courses: true }, // Include courses for edit view
+        include: { role: true, courses: true },
       });
 
       if (!user) {
@@ -29,12 +29,21 @@ export async function GET(req) {
       });
     }
 
-    // Filter by role if provided
-    const whereClause = role ? { role: { name: { equals: role } } } : {};
+    // --- THIS IS THE MODIFIED SECTION ---
+    const whereClause = {};
+    if (role) {
+      whereClause.role = {
+        name: {
+          equals: role,
+          mode: "insensitive", // ✅ This makes the search case-insensitive
+        },
+      };
+    }
+    // --- END OF MODIFICATION ---
 
     const users = await prisma.user.findMany({
       where: whereClause,
-      include: { role: true, courses: true }, // Include courses for table view
+      include: { role: true, courses: true },
     });
 
     return new Response(JSON.stringify(users), {
@@ -61,7 +70,6 @@ export async function POST(req) {
   }
 
   try {
-    // Hash the password
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
     const user = await prisma.user.create({
@@ -70,10 +78,6 @@ export async function POST(req) {
         email: data.email,
         password: hashedPassword,
         role: { connect: { id: data.roleId } },
-        department: data.department || null,
-        position: data.position || null,
-        contactNumber: data.contactNumber || null,
-        image: data.image || null,
         enrollmentDate: data.enrollmentDate
           ? new Date(data.enrollmentDate)
           : null,
@@ -127,26 +131,14 @@ export async function PUT(req) {
       updatedAt: new Date(),
     };
 
-    // Hash password ONLY if a new one is provided
     if (data.password) {
       updatePayload.password = await bcrypt.hash(data.password, SALT_ROUNDS);
     }
 
-    // Role update
     if (data.roleId) {
-      const roleExists = await prisma.roleEnum.findUnique({
-        where: { id: data.roleId },
-      });
-      if (!roleExists) {
-        return new Response(
-          JSON.stringify({ error: `Role '${data.roleId}' does not exist` }),
-          { status: 400 }
-        );
-      }
       updatePayload.role = { connect: { id: data.roleId } };
     }
 
-    // Courses update (set replaces existing relations)
     if (data.courseIds) {
       updatePayload.courses = {
         set: data.courseIds.map((id) => ({ id })),
@@ -181,8 +173,6 @@ export async function DELETE(req) {
     });
 
   try {
-    // Note: Depending on schema's onDelete rules, you might need to
-    // manually disconnect relations before deleting.
     const deletedUser = await prisma.user.delete({
       where: { id },
     });

@@ -6,25 +6,37 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
-    let groups;
+    const includeOptions = {
+      members: {
+        include: {
+          student: {
+            select: { id: true, name: true, email: true }, // Select only needed fields
+          },
+        },
+      },
+      assignments: true,
+    };
 
     if (id) {
       const group = await prisma.group.findUnique({
         where: { id },
-        include: {
-          members: { include: { student: true } },
-          assignments: true, // correct field name
-        },
+        include: includeOptions,
       });
-      groups = group ? [group] : []; // always an array
-    } else {
-      groups = await prisma.group.findMany({
-        include: {
-          members: { include: { student: true } },
-          assignments: true, // correct field name
-        },
+
+      if (!group) {
+        return new Response(JSON.stringify({ error: "Group not found" }), {
+          status: 404,
+        });
+      }
+      return new Response(JSON.stringify(group), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
       });
     }
+
+    const groups = await prisma.group.findMany({
+      include: includeOptions,
+    });
 
     return new Response(JSON.stringify(groups), {
       status: 200,
@@ -38,11 +50,13 @@ export async function GET(req) {
   }
 }
 
-// ✅ POST (create new group)
+// ✅ POST (create new group with members)
 export async function POST(req) {
   try {
     const data = await req.json();
-    if (!data.name) {
+    const { name, description, courseId, studentIds = [] } = data;
+
+    if (!name) {
       return new Response(JSON.stringify({ error: "Group name is required" }), {
         status: 400,
       });
@@ -50,17 +64,22 @@ export async function POST(req) {
 
     const newGroup = await prisma.group.create({
       data: {
-        name: data.name,
-        description: data.description || "",
-        courseId: data.courseId,
+        name,
+        description: description || "",
+        courseId,
+        members: {
+          create: studentIds.map((studentId) => ({
+            student: { connect: { id: studentId } },
+          })),
+        },
       },
       include: {
-        members: { include: { student: true } },
+        members: { include: { student: { select: { id: true, name: true } } } },
         assignments: true,
       },
     });
 
-    return new Response(JSON.stringify([newGroup]), {
+    return new Response(JSON.stringify(newGroup), {
       status: 201,
       headers: { "Content-Type": "application/json" },
     });
@@ -72,7 +91,7 @@ export async function POST(req) {
   }
 }
 
-// ✅ PUT (update group)
+// ✅ PUT (update group and its members)
 export async function PUT(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -84,21 +103,38 @@ export async function PUT(req) {
     }
 
     const data = await req.json();
+    const { name, description, courseId, studentIds } = data;
 
-    const updatedGroup = await prisma.group.update({
-      where: { id },
-      data: {
-        name: data.name,
-        description: data.description,
-        courseId: data.courseId,
-      },
-      include: {
-        members: { include: { student: true } },
-        assignments: true,
-      },
+    const updatedGroup = await prisma.$transaction(async (tx) => {
+      await tx.group.update({
+        where: { id },
+        data: { name, description, courseId },
+      });
+
+      if (Array.isArray(studentIds)) {
+        await tx.groupMember.deleteMany({ where: { groupId: id } });
+        if (studentIds.length > 0) {
+          await tx.groupMember.createMany({
+            data: studentIds.map((studentId) => ({
+              groupId: id,
+              studentId: studentId,
+            })),
+          });
+        }
+      }
+
+      return tx.group.findUnique({
+        where: { id },
+        include: {
+          members: {
+            include: { student: { select: { id: true, name: true } } },
+          },
+          assignments: true,
+        },
+      });
     });
 
-    return new Response(JSON.stringify([updatedGroup]), {
+    return new Response(JSON.stringify(updatedGroup), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -121,11 +157,9 @@ export async function DELETE(req) {
       });
     }
 
-    const deletedGroup = await prisma.group.delete({
-      where: { id },
-    });
+    const deletedGroup = await prisma.group.delete({ where: { id } });
 
-    return new Response(JSON.stringify([deletedGroup]), {
+    return new Response(JSON.stringify(deletedGroup), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

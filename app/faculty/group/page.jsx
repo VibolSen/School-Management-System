@@ -1,4 +1,4 @@
-import Group from "@/components/Group";
+import Group from "@/components/group/GroupsView";
 
 export default function GroupPage() {
   return <Group />;
