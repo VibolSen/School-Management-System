@@ -1,30 +1,67 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import BookOpenIcon from "@/components/icons/BookOpenIcon";
 import ChartBarIcon from "@/components/icons/ChartBarIcon";
-import {
-  MOCK_STUDENT_DATA,
-  MOCK_ATTENDANCE_DATA,
-  MOCK_E_LIBRARY_DATA,
-} from "@/lib/constants";
 import { AttendanceStatus } from "@/lib/types";
 
-const STUDENT_ID = "STU001"; // Alice Johnson
-
 const StudentDashboard = () => {
-  const myProfile = useMemo(
-    () => MOCK_STUDENT_DATA.find((s) => s.id === STUDENT_ID),
-    []
-  );
+  const [myProfile, setMyProfile] = useState(null);
+  const [attendance, setAttendance] = useState([]);
+  const [borrowedBooks, setBorrowedBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // First, get the current user's ID
+        const meResponse = await fetch('/api/me');
+        if (!meResponse.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        const me = await meResponse.json();
+        const studentId = me.id;
+
+        // Then, fetch the student's profile, attendance, and borrowed books
+        const [profileResponse, attendanceResponse, booksResponse] = await Promise.all([
+          fetch(`/api/students/${studentId}`),
+          fetch(`/api/attendances?studentId=${studentId}`),
+          fetch(`/api/library?borrowedBy=${studentId}`),
+        ]);
+
+        if (!profileResponse.ok) {
+          throw new Error('Failed to fetch student profile');
+        }
+        if (!attendanceResponse.ok) {
+          throw new Error('Failed to fetch attendance data');
+        }
+        if (!booksResponse.ok) {
+          throw new Error('Failed to fetch borrowed books');
+        }
+
+        const profileData = await profileResponse.json();
+        const attendanceData = await attendanceResponse.json();
+        const booksData = await booksResponse.json();
+
+        setMyProfile(profileData);
+        setAttendance(attendanceData);
+        setBorrowedBooks(booksData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const overallAttendance = useMemo(() => {
     if (!myProfile) return "N/A";
-    const myRecords = MOCK_ATTENDANCE_DATA.filter(
-      (r) => r.studentId === myProfile.id
-    );
+    const myRecords = attendance;
     if (myRecords.length === 0) return "100%";
     const presentCount = myRecords.filter(
       (r) =>
@@ -32,12 +69,15 @@ const StudentDashboard = () => {
         r.status === AttendanceStatus.LATE
     ).length;
     return `${Math.round((presentCount / myRecords.length) * 100)}%`;
-  }, [myProfile]);
+  }, [myProfile, attendance]);
 
-  const borrowedBooks = useMemo(
-    () => MOCK_E_LIBRARY_DATA.filter((b) => b.borrowedBy === STUDENT_ID),
-    []
-  );
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   if (!myProfile) {
     return <div>Student profile not found.</div>;
@@ -46,7 +86,7 @@ const StudentDashboard = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-3xl font-bold text-slate-800">
-        Welcome back, Alice!
+        Welcome back, {myProfile.name}!
       </h1>
       <p className="text-slate-500">
         Here's your personal dashboard and academic summary.

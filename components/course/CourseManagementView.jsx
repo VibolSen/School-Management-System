@@ -1,5 +1,3 @@
-// FILE: components/course/CourseManagementView.jsx
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -7,11 +5,11 @@ import CourseTable from "./CourseTable";
 import AddCourseModal from "./AddCourseModal";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
-const CourseManagementView = () => {
+export default function CourseManagementView() {
   const [courseList, setCourseList] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [allGroups, setAllGroups] = useState([]); // ✅ 1. Add state for groups
+  const [allGroups, setAllGroups] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [courseToDelete, setCourseToDelete] = useState(null);
@@ -19,6 +17,7 @@ const CourseManagementView = () => {
   const [error, setError] = useState("");
 
   const fetchData = useCallback(async () => {
+    // ... data fetching logic is correct and remains the same
     try {
       setLoading(true);
       setError("");
@@ -27,7 +26,7 @@ const CourseManagementView = () => {
           fetch("/api/courses"),
           fetch("/api/users?role=Teacher"),
           fetch("/api/departments"),
-          fetch("/api/groups"), // ✅ 2. Fetch all groups
+          fetch("/api/groups"),
         ]);
 
       if (!coursesRes.ok) throw new Error("Failed to fetch courses");
@@ -38,7 +37,7 @@ const CourseManagementView = () => {
       setCourseList(await coursesRes.json());
       setTeachers(await teachersRes.json());
       setDepartments(await departmentsRes.json());
-      setAllGroups(await groupsRes.json()); // ✅ 3. Set groups state
+      setAllGroups(await groupsRes.json());
     } catch (err) {
       console.error("Failed to fetch data:", err);
       setError(err.message);
@@ -50,6 +49,8 @@ const CourseManagementView = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ✅ The incorrect handleToggleStatus function has been removed.
 
   const handleAddClick = () => {
     setEditingCourse(null);
@@ -94,7 +95,6 @@ const CourseManagementView = () => {
       const res = await fetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
-        // ✅ 4. The courseData object now correctly includes groupIds
         body: JSON.stringify(courseData),
       });
 
@@ -102,7 +102,6 @@ const CourseManagementView = () => {
         const errorData = await res.json();
         throw new Error(errorData.error || "Failed to save course");
       }
-
       fetchData();
       handleCloseModal();
     } catch (err) {
@@ -111,7 +110,7 @@ const CourseManagementView = () => {
     }
   };
 
-  if (loading) {
+  if (loading && courseList.length === 0) {
     return <div className="text-center py-10">Loading...</div>;
   }
 
@@ -128,6 +127,11 @@ const CourseManagementView = () => {
         onAddCourseClick={handleAddClick}
         onEditClick={handleEditClick}
         onDeleteClick={handleDeleteRequest}
+        isLoading={loading}
+        departments={departments}
+        teachers={teachers}
+        allGroups={allGroups}
+        // ✅ The onToggleStatus prop is no longer passed
       />
 
       <AddCourseModal
@@ -137,7 +141,7 @@ const CourseManagementView = () => {
         courseToEdit={editingCourse}
         teachers={teachers}
         departments={departments}
-        allGroups={allGroups} // ✅ 5. Pass groups to the modal
+        allGroups={allGroups}
       />
 
       <ConfirmationModal
@@ -149,6 +153,4 @@ const CourseManagementView = () => {
       />
     </div>
   );
-};
-
-export default CourseManagementView;
+}

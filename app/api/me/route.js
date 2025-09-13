@@ -7,46 +7,41 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 export async function GET(req) {
   try {
     const authHeader = req.headers.get("authorization");
-    if (!authHeader)
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "No token provided" }), {
         status: 401,
       });
+    }
 
-    const token = authHeader.replace("Bearer ", "");
-
-    // Log the raw token
-    console.log("JWT Token:", token);
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    // Log the decoded token
-    console.log("Decoded token:", decoded);
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+      });
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       include: { role: true },
     });
 
-    // Log the user fetched from DB
-    console.log("User from DB:", user);
-
-    if (!user)
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+    if (!user) {
+      return new Response(JSON.stringify({ error: "User not found" }), {
+        status: 404,
       });
+    }
 
-    const { password: _, ...userWithoutPassword } = user;
-
-    // Log the final user object that will be returned
-    console.log("User returned:", userWithoutPassword);
-
+    const { password, ...userWithoutPassword } = user;
     return new Response(JSON.stringify({ user: userWithoutPassword }), {
       status: 200,
     });
-  } catch (err) {
-    console.error("Error in GET /user:", err);
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
+  } catch (error) {
+    console.error("ME API error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
     });
   }
 }

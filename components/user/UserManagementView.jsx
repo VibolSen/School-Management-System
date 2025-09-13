@@ -1,4 +1,3 @@
-// UserManagementView.jsx
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -13,11 +12,18 @@ export default function UserManagementView() {
   const [editingUser, setEditingUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [notification, setNotification] = useState({ show: false, message: "", type: "" });
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "",
+  });
 
   const showMessage = (message, type = "success") => {
     setNotification({ show: true, message, type });
-    setTimeout(() => setNotification({ show: false, message: "", type: "" }), 3000);
+    setTimeout(
+      () => setNotification({ show: false, message: "", type: "" }),
+      3000
+    );
   };
 
   // Fetch users from API
@@ -128,21 +134,28 @@ export default function UserManagementView() {
   const handleSaveUser = async (userData) => {
     setIsLoading(true);
     try {
-      const payload = { ...userData };
-      let res;
-      if (editingUser) {
-        res = await fetch(`/api/users?id=${editingUser.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        res = await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+      // Clean payload, remove fields not needed in the backend
+      const payload = {
+        name: userData.name,
+        email: userData.email,
+        roleId: userData.roleId,
+        contactNumber: userData.contactNumber,
+        isActive: userData.isActive,
+      };
+
+      if (!editingUser) {
+        payload.password = userData.password;
       }
+
+      const res = await fetch(
+        editingUser ? `/api/users?id=${editingUser.id}` : "/api/users",
+        {
+          method: editingUser ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || `HTTP error ${res.status}`);
@@ -158,30 +171,34 @@ export default function UserManagementView() {
     }
   };
 
-  if (isLoading && users.length === 0)
+  if (isLoading && users.length === 0) {
+    return <p className="text-center py-10">Loading user data...</p>;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="text-center py-10 text-red-600">
+        <p>{error}</p>
+        <button
+          onClick={fetchUsers}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
       </div>
     );
-    
-  if (error) return <p className="text-center py-10 text-red-600">{error}</p>;
+  }
 
   return (
     <div className="space-y-6">
-      <Notification 
-        show={notification.show} 
-        message={notification.message} 
-        type={notification.type} 
-        onClose={() => setNotification({ show: false, message: "", type: "" })} 
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ show: false, message: "", type: "" })}
       />
-      
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">User Management</h1>
-          <p className="text-slate-500 mt-1">Manage all system users and their permissions</p>
-        </div>
-      </div>
+
+      <h1 className="text-3xl font-bold text-slate-800">User Management</h1>
 
       <UserTable
         users={users}

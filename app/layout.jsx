@@ -1,13 +1,10 @@
-import { Inter } from "next/font/google";
+"use client";
+
 import "./globals.css";
+import { Inter } from "next/font/google";
 import { UserProvider } from "@/context/UserContext";
 
 const inter = Inter({ subsets: ["latin"] });
-
-export const metadata = {
-  title: "School Management System",
-  description: "A comprehensive school management system",
-};
 
 export default function RootLayout({ children }) {
   return (
@@ -18,4 +15,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-

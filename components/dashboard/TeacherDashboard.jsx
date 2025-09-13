@@ -1,16 +1,11 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import ClipboardListIcon from "@/components/icons/ClipboardListIcon";
 import CalendarIcon from "@/components/icons/CalendarIcon";
 import BellIcon from "@/components/icons/BellIcon";
 import UsersIcon from "@/components/icons/UsersIcon";
-import {
-  MOCK_COURSES,
-  MOCK_ASSIGNMENTS,
-  MOCK_SUBMISSIONS,
-} from "@/lib/constants";
 import { SubmissionStatus } from "@/lib/types";
 import {
   BarChart,
@@ -22,29 +17,70 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Mock Teacher ID
-const TEACHER_ID = "S009"; // Laura Wilson
-
 const TeacherDashboard = () => {
-  const myCourses = useMemo(
-    () => MOCK_COURSES.filter((c) => c.teacherId === TEACHER_ID),
-    []
-  );
-  const myCourseIds = useMemo(() => myCourses.map((c) => c.id), [myCourses]);
+  const [myCourses, setMyCourses] = useState([]);
+  const [myAssignments, setMyAssignments] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [teacher, setTeacher] = useState(null);
 
-  const myAssignments = useMemo(
-    () => MOCK_ASSIGNMENTS.filter((a) => myCourseIds.includes(a.courseId)),
-    [myCourseIds]
-  );
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const meResponse = await fetch("/api/me");
+        if (!meResponse.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+        const me = await meResponse.json();
+        setTeacher(me);
+        const teacherId = me.id;
+
+        const coursesResponse = await fetch(`/api/courses?teacherId=${teacherId}`);
+        if (!coursesResponse.ok) {
+          throw new Error("Failed to fetch courses");
+        }
+        const coursesData = await coursesResponse.json();
+        setMyCourses(coursesData);
+
+        const courseIds = coursesData.map((c) => c.id);
+        const assignmentsPromises = courseIds.map((courseId) =>
+          fetch(`/api/assignments?courseId=${courseId}`)
+        );
+        const assignmentsResponses = await Promise.all(assignmentsPromises);
+        const assignmentsData = await Promise.all(
+          assignmentsResponses.map((res) => res.json())
+        );
+        const allAssignments = assignmentsData.flat();
+        setMyAssignments(allAssignments);
+
+        const assignmentIds = allAssignments.map((a) => a.id);
+        const submissionsPromises = assignmentIds.map((assignmentId) =>
+          fetch(`/api/submissions?assignmentId=${assignmentId}`)
+        );
+        const submissionsResponses = await Promise.all(submissionsPromises);
+        const submissionsData = await Promise.all(
+          submissionsResponses.map((res) => res.json())
+        );
+        setSubmissions(submissionsData.flat());
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const assignmentsToGrade = useMemo(() => {
-    return MOCK_SUBMISSIONS.filter(
+    return submissions.filter(
       (s) =>
         myAssignments.some((a) => a.id === s.assignmentId) &&
         (s.status === SubmissionStatus.SUBMITTED ||
           s.status === SubmissionStatus.LATE)
     ).length;
-  }, [myAssignments]);
+  }, [myAssignments, submissions]);
 
   const upcomingDueDate = useMemo(() => {
     const futureAssignments = myAssignments
@@ -69,7 +105,7 @@ const TeacherDashboard = () => {
   const submissionsPerAssignment = useMemo(() => {
     return myAssignments
       .map((assignment) => {
-        const submissions = MOCK_SUBMISSIONS.filter(
+        const assignmentSubmissions = submissions.filter(
           (s) => s.assignmentId === assignment.id
         );
         return {
@@ -77,16 +113,24 @@ const TeacherDashboard = () => {
             assignment.title.length > 15
               ? assignment.title.substring(0, 15) + "..."
               : assignment.title,
-          Submissions: submissions.length,
+          Submissions: assignmentSubmissions.length,
         };
       })
       .slice(0, 5);
-  }, [myAssignments]);
+  }, [myAssignments, submissions]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-3xl font-bold text-slate-800">
-        Welcome back, Laura!
+        Welcome back, {teacher?.name}!
       </h1>
       <p className="text-slate-500">Your teaching dashboard for today.</p>
 

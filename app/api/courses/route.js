@@ -3,17 +3,16 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const courseInclude = {
-  instructor: true,
-  department: true,
+  instructor: { select: { name: true } }, // Select only what's needed
+  department: { select: { name: true } }, // Select only what's needed
   groups: { select: { id: true, name: true } },
 };
 
-// ===== GET all courses, by ?id=, or by ?departmentId= =====
+// ===== GET all courses with filtering, searching, and sorting =====
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    const departmentId = searchParams.get("departmentId"); // ✅ ADD this line to read the department ID
 
     // Handle request for a single course by its ID
     if (id) {
@@ -29,17 +28,45 @@ export async function GET(req) {
       return new Response(JSON.stringify(course), { status: 200 });
     }
 
-    // ✅ ADD this block to handle filtering by department
-    // This is the core of the fix.
+    // --- NEW: Logic for Server-Side Search, Filter, and Sort ---
+    const departmentId = searchParams.get("departmentId");
+    const search = searchParams.get("search"); // For searching
+    const sortBy = searchParams.get("sortBy"); // For sorting column
+    const sortOrder = searchParams.get("sortOrder"); // For sorting direction (asc/desc)
+
+    // 1. Build WHERE clause for filtering and searching
     const whereClause = {};
     if (departmentId) {
       whereClause.departmentId = departmentId;
     }
+    if (search) {
+      whereClause.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { instructor: { name: { contains: search, mode: "insensitive" } } },
+        { department: { name: { contains: search, mode: "insensitive" } } },
+      ];
+    }
 
-    // Fetch courses using the where clause (it will be empty if no filter is applied)
+    // 2. Build ORDER BY clause for sorting
+    const orderByClause = {};
+    if (sortBy && sortOrder) {
+      if (sortBy === "instructor") {
+        orderByClause.instructor = { name: sortOrder };
+      } else if (sortBy === "department") {
+        orderByClause.department = { name: sortOrder };
+      } else {
+        orderByClause[sortBy] = sortOrder;
+      }
+    } else {
+      // Default sort order
+      orderByClause.title = "asc";
+    }
+
+    // 3. Execute the final query
     const courses = await prisma.course.findMany({
-      where: whereClause, // ✅ APPLY the filter here
+      where: whereClause,
       include: courseInclude,
+      orderBy: orderByClause,
     });
 
     return new Response(JSON.stringify(courses), { status: 200 });
@@ -66,6 +93,7 @@ export async function POST(req) {
           connect: groupIds.map((id) => ({ id })),
         },
       },
+      include: courseInclude, // Include relations on create
     });
 
     return new Response(JSON.stringify(course), { status: 201 });
@@ -98,11 +126,10 @@ export async function PUT(req) {
         instructorId,
         departmentId,
         groups: Array.isArray(groupIds)
-          ? {
-              set: groupIds.map((id) => ({ id })),
-            }
+          ? { set: groupIds.map((id) => ({ id })) }
           : undefined,
       },
+      include: courseInclude, // Include relations on update
     });
 
     return new Response(JSON.stringify(updatedCourse), { status: 200 });
