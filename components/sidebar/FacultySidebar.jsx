@@ -1,33 +1,32 @@
 // FacultySidebar.tsx
 "use client";
-import React, { lazy } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FiHome,
   FiUsers,
   FiBook,
-  FiCalendar,
   FiBarChart2,
   FiBookOpen,
-  FiClipboard,
   FiTrendingUp,
   FiSettings,
   FiChevronLeft,
   FiChevronRight,
+  FiGrid,
+  FiHash,
+  FiBriefcase,
+  FiUser,
+  FiCheckSquare,
+  FiSend,
 } from "react-icons/fi";
 
-const NavLink = ({
-  icon,
-  label,
-  isCollapsed,
-  isActive,
-  href,
-}) => (
-  <li>
+// ✅ 1. The `title` attribute for the tooltip is now handled directly inside NavLink.
+const NavLink = ({ icon, label, isCollapsed, isActive, href }) => (
+  <li title={isCollapsed ? label : ""}>
     <Link
       href={href}
-      className={`flex items-center p-3 my-1 rounded-lg transition-colors duration-200 w-full text-left ${
+      className={`flex items-center p-3 my-1 rounded-lg transition-colors duration-200 w-full text-left group relative ${
         isActive
           ? "bg-blue-600 text-white shadow-md"
           : "text-slate-200 hover:bg-blue-800 hover:text-white"
@@ -35,8 +34,10 @@ const NavLink = ({
     >
       {icon}
       <span
-        className={`ml-3 transition-opacity duration-300 ${
-          isCollapsed ? "opacity-0 md:opacity-100" : ""
+        className={`ml-3 transition-all duration-300 ${
+          isCollapsed
+            ? "opacity-0 absolute left-full ml-2 bg-blue-900 text-white px-2 py-1 rounded text-sm invisible group-hover:visible group-hover:opacity-100 z-50"
+            : "opacity-100 relative"
         }`}
       >
         {label}
@@ -52,18 +53,8 @@ const FACULTY_NAV_ITEMS = [
     href: "/faculty/dashboard",
   },
   {
-    label: "Students",
-    icon: <FiUsers className="w-5 h-5" />,
-    href: "/faculty/students",
-  },
-  {
-    label: "Groups",
-    icon: <FiUsers className="w-5 h-5" />,
-    href: "/faculty/group",
-  },
-  {
     label: "Departments",
-    icon: <FiUsers className="w-5 h-5" />,
+    icon: <FiGrid className="w-5 h-5" />,
     href: "/faculty/departments",
   },
   {
@@ -72,9 +63,24 @@ const FACULTY_NAV_ITEMS = [
     href: "/faculty/courses",
   },
   {
-    label: "Assignments",
-    icon: <FiClipboard className="w-5 h-5" />,
-    href: "/faculty/assignments",
+    label: "Groups",
+    icon: <FiHash className="w-5 h-5" />,
+    href: "/faculty/group",
+  },
+  {
+    label: "Teachers",
+    icon: <FiBriefcase className="w-5 h-5" />,
+    href: "/faculty/teacher",
+  },
+  {
+    label: "Students",
+    icon: <FiUser className="w-5 h-5" />,
+    href: "/faculty/students",
+  },
+  {
+    label: "Attendance",
+    icon: <FiCheckSquare className="w-5 h-5" />,
+    href: "/faculty/attendance",
   },
   {
     label: "Course Analytics",
@@ -87,31 +93,23 @@ const FACULTY_NAV_ITEMS = [
     href: "/faculty/student-performance",
   },
   {
-    label: "Attendance",
-    icon: <FiCalendar className="w-5 h-5" />,
-    href: "/faculty/attendance",
-  },
-  {
     label: "E-Library",
     icon: <FiBookOpen className="w-5 h-5" />,
     href: "/faculty/e-library",
   },
   {
     label: "Leave",
-    icon: <FiCalendar className="w-5 h-5" />,
+    icon: <FiSend className="w-5 h-5" />,
     href: "/faculty/leave",
   },
   {
     label: "Settings",
     icon: <FiSettings className="w-5 h-5" />,
     href: "/faculty/settings",
-  }
+  },
 ];
 
-export default function FacultySidebar({
-  isOpen,
-  setIsOpen,
-}) {
+export default function FacultySidebar({ isOpen, setIsOpen }) {
   const isCollapsed = !isOpen;
   const pathname = usePathname();
 
@@ -145,15 +143,17 @@ export default function FacultySidebar({
                   d="M12 6.253v11.494m-5.22-8.242l10.44 4.99m-10.44-4.99l10.44 4.99M3 10.519l9-4.266 9 4.266"
                 />
               </svg>
-              <h1 className="ml-2 text-xl font-bold">Faculty Portal</h1>
+              <h1 className="ml-2 text-xl font-bold whitespace-nowrap">
+                Faculty Portal
+              </h1>
             </div>
           ) : (
             <div className="w-8 h-8"></div>
           )}
-          
+
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="p-1 rounded-full bg-blue-800 hover:bg-blue-700 transition-colors absolute right-2"
+            className="p-1 rounded-full bg-blue-800 hover:bg-blue-700 transition-colors absolute right-2 top-1/2 -translate-y-1/2"
             aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
           >
             {isOpen ? (
@@ -164,8 +164,9 @@ export default function FacultySidebar({
           </button>
         </div>
 
-        <nav className="flex-1 px-2 py-4">
+        <nav className="flex-1 px-2 py-4 overflow-y-auto">
           <ul>
+            {/* ✅ 2. The unnecessary wrapper is removed. The `key` is now correctly placed on the <NavLink> component, which renders the <li>. */}
             {FACULTY_NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.label}
@@ -178,16 +179,6 @@ export default function FacultySidebar({
             ))}
           </ul>
         </nav>
-
-        <div className="px-2 py-4 border-t border-blue-800">
-          <NavLink
-            icon={<FiSettings className="w-5 h-5" />}
-            label="Settings"
-            href="/settings"
-            isActive={pathname === "/settings"}
-            isCollapsed={isCollapsed}
-          />
-        </div>
       </aside>
     </>
   );

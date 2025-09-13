@@ -7,24 +7,17 @@ export default function NotFoundPage() {
       <div className="flex flex-col md:flex-row items-center justify-center">
         {/* Left Side: Text Information */}
         <div className="md:flex-1 text-center md:text-left md:pr-10">
-          <h2 className="mt-4 text-9xl font-bold text-gray-800 animate-bounce">
-            404
+          <h2 className="mt-4 text-3xl font-bold text-gray-800 animate-bounce">
+            I'm Not yet done!😭
           </h2>
-          <h3 className="mt-4 text-3xl font-semibold text-gray-700">
-            I'm Not yet done! 
+          <h3 className="mt-4 text-2xl font-semibold text-gray-700">
+            Please wait a moment...😭
           </h3>
           <p className="mt-2 text-lg text-gray-600 max-w-md">
             It looks like you&apos;ve wandered off the path. Don&apos;t worry,
             we&apos;ll help you find your way back!
           </p>
-          <div className="mt-8">
-            {/* <Link
-              href="/"
-              className="px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg shadow-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-105"
-            >
-              Go Back Home
-            </Link> */}
-          </div>
+          <div className="mt-8"></div>
         </div>
 
         {/* Right Side: Image */}
