@@ -1,8 +1,7 @@
 // components/HomePage.jsx
 "use client";
 
-import { Star, Play, Users, BookOpen, HelpCircle , ChevronRight, GraduationCap, Briefcase, Code } from "lucide-react";
-import { Sparkles, TrendingUp, Award } from "lucide-react"
+import { HelpCircle, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import HomeSection from "./HomeSection";
 
@@ -11,11 +10,12 @@ export default function HomePage() {
   const [particles, setParticles] = useState([]);
 
   useEffect(() => {
-    const generated = Array.from({ length: 30 }).map(() => ({ // Increased particle count
+    const generated = Array.from({ length: 50 }).map(() => ({
       top: `${Math.random() * 100}%`,
       left: `${Math.random() * 100}%`,
-      animationDuration: `${15 + Math.random() * 20}s`, // Slower, more subtle
-      animationDelay: `${Math.random() * 15}s`,
+      animationDuration: `${10 + Math.random() * 15}s`,
+      animationDelay: `${Math.random() * 10}s`,
+      size: Math.random() > 0.5 ? "w-1 h-1" : "w-0.5 h-0.5",
     }));
     setParticles(generated);
   }, []);
@@ -58,14 +58,13 @@ export default function HomePage() {
   ];
 
   return (
-    // Add a subtle gradient background for depth
-    <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-muted/20 overflow-x-hidden">
-      {/* Particle Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+    <div className="relative min-h-screen bg-white overflow-x-hidden">
+      {/* Enhanced Particle Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         {particles.map((p, i) => (
           <span
             key={i}
-            className="absolute w-1 h-1 bg-primary/30 rounded-full animate-particle"
+            className={`absolute ${p.size} bg-gradient-to-r from-blue-400/40 via-purple-400/40 to-pink-400/40 rounded-full animate-pulse`}
             style={{
               top: p.top,
               left: p.left,
@@ -77,106 +76,132 @@ export default function HomePage() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative  lg:py-12 px-32 ">
-        <div className="container mx-auto px-4 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              <h1 className="text-5xl lg:text-7xl font-bold text-blue-900 text-balance leading-tight">
+      <section className="relative py-20 lg:py-24 px-8 lg:px-32">
+        <div className="absolute top-20 left-20 w-24 h-24 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-xl animate-pulse" />
+        <div className="absolute top-40 right-32 w-20 h-20 bg-gradient-to-br from-pink-400/20 to-rose-400/20 rounded-lg rotate-45 blur-lg animate-bounce" />
+        <div className="absolute bottom-32 left-1/4 w-16 h-16 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-md animate-pulse delay-1000" />
+
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
+            <div className="space-y-10">
+              <h1 className="text-6xl lg:text-8xl font-black text-blue-900 text-balance leading-tight">
                 Smart Learning
                 <br />
-                <span className="text-foreground">Deeper & More</span>
+                <span className="text-slate-800">Deeper & More</span>
                 <br />
-                {/* Gradient text for emphasis */}
-                <span className="  text-blue-900  from-primary to-primary/70 text-transparent bg-clip-text">
-                  -Amazing
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
+                  Amazing
                 </span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-md text-pretty ">
+              <p className="text-xl text-slate-600 max-w-lg text-pretty leading-relaxed font-medium">
                 Transform your skills with our comprehensive online courses
                 designed for modern learners. Join thousands of students already
-                advancing their careers.
+                advancing their careers with cutting-edge education.
               </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                <button className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl shadow-2xl shadow-blue-500/25 transition-all duration-500 hover:scale-105 hover:shadow-blue-500/40">
+                  <span className="relative z-10">Start Learning Today</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 rounded-2xl" />
+                </button>
+                <button className="px-8 py-4 border-2 border-slate-300 text-slate-700 font-bold rounded-2xl hover:border-blue-500 hover:text-blue-600 transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                  Watch Demo
+                </button>
+              </div>
             </div>
 
-            {/* GIF with a soft glow effect */}
-            <div className="relative w-full max-w-lg mx-auto animate-float">
-               {/* This pseudo-element creates the glow */}
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl -z-10"></div>
-              <img
-                src="/illustration/Coding workshop.gif"
-                alt="Student learning online"
-                className="w-full h-auto rounded-2xl"
-              />
+            <div className="relative w-full max-w-lg mx-auto">
+              {/* Multiple glow layers for depth */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-pink-400/20 rounded-3xl blur-3xl animate-pulse" />
+              <div className="absolute inset-2 bg-gradient-to-r from-blue-300/15 via-purple-300/15 to-pink-300/15 rounded-2xl blur-2xl animate-pulse delay-500" />
+
+              <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-4 shadow-2xl border border-white/50">
+                <img
+                  src="/illustration/Coding workshop.gif"
+                  alt="Student learning online"
+                  className="w-full h-auto rounded-2xl shadow-lg"
+                />
+              </div>
+
+              {/* Floating elements around the image */}
+              <div className="absolute -top-4 -right-4 w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce shadow-lg" />
+              <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-bounce delay-300 shadow-lg" />
             </div>
           </div>
         </div>
       </section>
 
-{/* Stats Section */}
-
-<section>
-   <div>
-        <HomeSection/>
-   </div>
-</section>
-
-
-
-
-
-
-      {/* FAQ Section */}
-      <section className="py-24 bg-gradient-to-b from-white to-gray-50 dark:from-blue-900 dark:to-gray-950">
-      <div className="container mx-auto px-4 max-w-3xl">
-        {/* Heading */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-extrabold mb-4 bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
-            Frequently Asked Questions
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Find answers to common questions about our platform and courses.
-          </p>
+      {/* Stats Section */}
+      <section>
+        <div>
+          <HomeSection />
         </div>
+      </section>
 
-        {/* FAQ Items */}
-        <div className="space-y-4">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className={`border rounded-2xl shadow-sm transition-all duration-300 overflow-hidden 
-                ${openFaqIndex === index ? "bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/20 shadow-md" : "bg-white dark:bg-gray-800"}`}
-            >
-              {/* Question Button */}
-              <button
-                onClick={() => toggleFaq(index)}
-                className="flex justify-between items-center w-full text-left p-6 font-semibold group"
-              >
-                <span className="text-lg flex text-white items-center gap-2">
-                  <HelpCircle className="h-5 w-5 text-purple-500 group-hover:scale-110 transition-transform" />
-                  {faq.question}
-                </span>
-                <ChevronRight
-                  className={`h-5 w-5 transform transition-transform duration-300 text-white group-hover:text-purple-500
-                    ${openFaqIndex === index ? "rotate-90" : ""}`}
-                />
-              </button>
+      {/* Enhanced FAQ Section */}
+      <section className="py-28 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 relative overflow-hidden">
+        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-2xl animate-pulse" />
+        <div className="absolute bottom-20 right-20 w-28 h-28 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-xl animate-pulse delay-1000" />
 
-              {/* Answer Section */}
+        <div className="container mx-auto px-4 max-w-4xl relative z-10">
+          {/* Enhanced Heading */}
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full border border-purple-200/50 mb-8 shadow-lg backdrop-blur-sm">
+              <HelpCircle className="w-5 h-5 text-purple-600 animate-pulse" />
+              <span className="text-sm font-semibold text-purple-700 tracking-wide">
+                Got Questions?
+              </span>
+            </div>
+            <h2 className="text-5xl font-black mb-6 bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-slate-600 leading-relaxed">
+              Find answers to common questions about our platform and courses.
+            </p>
+          </div>
+
+          {/* Enhanced FAQ Items */}
+          <div className="space-y-6">
+            {faqs.map((faq, index) => (
               <div
-                className={`overflow-hidden transition-all duration-500 ease-in-out ${openFaqIndex === index ? "max-h-96" : "max-h-0"}`}
+                key={index}
+                className={`border-2 rounded-3xl shadow-lg transition-all duration-500 overflow-hidden backdrop-blur-sm
+                  ${
+                    openFaqIndex === index
+                      ? "bg-gradient-to-r from-purple-50/80 to-pink-50/80 border-purple-200 shadow-purple-500/20"
+                      : "bg-white/80 border-slate-200 hover:border-purple-300"
+                  }`}
               >
-                <div className="p-6 pt-0 text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {faq.answer}
+                {/* Question Button */}
+                <button
+                  onClick={() => toggleFaq(index)}
+                  className="flex justify-between items-center w-full text-left p-8 font-bold group"
+                >
+                  <span className="text-xl flex text-slate-800 items-center gap-3">
+                    <HelpCircle className="h-6 w-6 text-purple-500 group-hover:scale-110 transition-transform" />
+                    {faq.question}
+                  </span>
+                  <ChevronRight
+                    className={`h-6 w-6 transform transition-transform duration-300 text-slate-600 group-hover:text-purple-500
+                      ${openFaqIndex === index ? "rotate-90" : ""}`}
+                  />
+                </button>
+
+                {/* Answer Section */}
+                <div
+                  className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                    openFaqIndex === index ? "max-h-96" : "max-h-0"
+                  }`}
+                >
+                  <div className="p-8 pt-0 text-slate-700 leading-relaxed text-lg">
+                    {faq.answer}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
-
-
-
+      </section>
     </div>
   );
 }
