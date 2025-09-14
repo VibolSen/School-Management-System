@@ -1,4 +1,3 @@
-
 // This is a placeholder for your auth store.
 // You can replace this with a more robust solution like Zustand or Redux.
 
