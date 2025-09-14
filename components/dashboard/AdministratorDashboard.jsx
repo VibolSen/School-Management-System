@@ -38,7 +38,7 @@ export default function AdministratorDashboard() {
   // Fetch logged-in user
   async function fetchCurrentUser() {
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (!token) return;
       const res = await fetch("/api/me", {
         headers: { Authorization: `Bearer ${token}` },

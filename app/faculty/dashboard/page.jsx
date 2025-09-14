@@ -7,7 +7,7 @@ const FacultyDashboardPage = () => {
   const [loggedInUser, setLoggedInUser] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token"); 
+    const token = sessionStorage.getItem("token"); 
     if (!token) return;
 
     fetch("/api/me", {

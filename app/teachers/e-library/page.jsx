@@ -7,7 +7,7 @@ export default function ELibraryPage() {
   const [loggedInUser, setLoggedInUser] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token"); // Or cookie
+    const token = sessionStorage.getItem("token"); // Or cookie
     if (!token) return;
 
     fetch("/api/me", {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import BriefcaseIcon from "@/components/icons/BriefcaseIcon";
@@ -20,20 +20,20 @@ import {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
-const HRDashboard = () => {
-  const [staffData, setStaffData] = useState([]);
+const HRDashboard = ({ loggedInUser }) => {
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchStaffData = async () => {
+    const fetchHRDashboardData = async () => {
       try {
-        const response = await fetch("/api/staff");
+        const response = await fetch("/api/dashboard/hr");
         if (!response.ok) {
-          throw new Error("Failed to fetch staff data");
+          throw new Error("Failed to fetch HR dashboard data");
         }
         const data = await response.json();
-        setStaffData(data);
+        setDashboardData(data);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
@@ -45,47 +45,8 @@ const HRDashboard = () => {
       }
     };
 
-    fetchStaffData();
+    fetchHRDashboardData();
   }, []);
-
-  const totalStaff = staffData.length;
-  const onLeave = staffData.filter(
-    (s) => s.status === "On Leave"
-  ).length;
-  const newHires = staffData.filter(
-    (s) =>
-      new Date(s.hireDate) >
-      new Date(new Date().setMonth(new Date().getMonth() - 3))
-  ).length;
-  const activeStaff = staffData.filter(
-    (s) => s.status === "Active"
-  ).length;
-
-  const staffByDept = useMemo(() => {
-    const departments = [
-      "Engineering",
-      "Design",
-      "Marketing",
-      "HR",
-      "Operations",
-    ];
-    const data = departments.map((dept) => ({
-      name: dept,
-      count: staffData.filter(
-        (staff) => staff.department === dept
-      ).length,
-    }));
-    return data.filter((d) => d.count > 0);
-  }, [staffData]);
-
-  const staffByStatus = useMemo(() => {
-    const statuses = ["Active", "On Leave", "Inactive"];
-    return statuses.map((status) => ({
-      name: status,
-      value: staffData.filter((s) => s.status === status)
-        .length,
-    }));
-  }, [staffData]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -95,10 +56,16 @@ const HRDashboard = () => {
     return <div>Error: {error}</div>;
   }
 
+  if (!dashboardData) {
+    return <div>No data available</div>;
+  }
+
+  const { totalStaff, activeStaff, onLeave, newHires, staffByDept, staffByStatus } = dashboardData;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-3xl font-bold text-slate-800">
-        Welcome back, Patricia!
+        Welcome back, {loggedInUser?.name}!
       </h1>
       <p className="text-slate-500">
         Here's an overview of your staff management metrics.

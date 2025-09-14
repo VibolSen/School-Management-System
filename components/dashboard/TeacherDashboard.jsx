@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import ClipboardListIcon from "@/components/icons/ClipboardListIcon";
 import CalendarIcon from "@/components/icons/CalendarIcon";
 import BellIcon from "@/components/icons/BellIcon";
 import UsersIcon from "@/components/icons/UsersIcon";
-import { SubmissionStatus } from "@/lib/types";
 import {
   BarChart,
   Bar,
@@ -17,107 +16,31 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const TeacherDashboard = () => {
-  const [myCourses, setMyCourses] = useState([]);
-  const [myAssignments, setMyAssignments] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
+const TeacherDashboard = ({ loggedInUser }) => {
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [teacher, setTeacher] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const meResponse = await fetch("/api/me");
-        if (!meResponse.ok) {
-          throw new Error("Failed to fetch user data");
+    if (loggedInUser) {
+      const fetchTeacherDashboardData = async () => {
+        try {
+          const res = await fetch(
+            `/api/dashboard/teacher?teacherId=${loggedInUser.id}`
+          );
+          if (!res.ok) throw new Error("Failed to fetch dashboard data");
+          const data = await res.json();
+          setDashboardData(data);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
         }
-        const me = await meResponse.json();
-        setTeacher(me);
-        const teacherId = me.id;
+      };
 
-        const coursesResponse = await fetch(`/api/courses?teacherId=${teacherId}`);
-        if (!coursesResponse.ok) {
-          throw new Error("Failed to fetch courses");
-        }
-        const coursesData = await coursesResponse.json();
-        setMyCourses(coursesData);
-
-        const courseIds = coursesData.map((c) => c.id);
-        const assignmentsPromises = courseIds.map((courseId) =>
-          fetch(`/api/assignments?courseId=${courseId}`)
-        );
-        const assignmentsResponses = await Promise.all(assignmentsPromises);
-        const assignmentsData = await Promise.all(
-          assignmentsResponses.map((res) => res.json())
-        );
-        const allAssignments = assignmentsData.flat();
-        setMyAssignments(allAssignments);
-
-        const assignmentIds = allAssignments.map((a) => a.id);
-        const submissionsPromises = assignmentIds.map((assignmentId) =>
-          fetch(`/api/submissions?assignmentId=${assignmentId}`)
-        );
-        const submissionsResponses = await Promise.all(submissionsPromises);
-        const submissionsData = await Promise.all(
-          submissionsResponses.map((res) => res.json())
-        );
-        setSubmissions(submissionsData.flat());
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const assignmentsToGrade = useMemo(() => {
-    return submissions.filter(
-      (s) =>
-        myAssignments.some((a) => a.id === s.assignmentId) &&
-        (s.status === SubmissionStatus.SUBMITTED ||
-          s.status === SubmissionStatus.LATE)
-    ).length;
-  }, [myAssignments, submissions]);
-
-  const upcomingDueDate = useMemo(() => {
-    const futureAssignments = myAssignments
-      .filter((a) => new Date(a.dueDate) >= new Date())
-      .sort(
-        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-      );
-
-    return futureAssignments.length > 0 ? futureAssignments[0] : null;
-  }, [myAssignments]);
-
-  const studentQuestionCount = useMemo(() => {
-    // Mock data for student questions feature
-    return 3;
-  }, []);
-
-  const classesToday = useMemo(() => {
-    // Mock data, assuming 2 classes today
-    return myCourses.length > 1 ? 2 : myCourses.length;
-  }, [myCourses]);
-
-  const submissionsPerAssignment = useMemo(() => {
-    return myAssignments
-      .map((assignment) => {
-        const assignmentSubmissions = submissions.filter(
-          (s) => s.assignmentId === assignment.id
-        );
-        return {
-          name:
-            assignment.title.length > 15
-              ? assignment.title.substring(0, 15) + "..."
-              : assignment.title,
-          Submissions: assignmentSubmissions.length,
-        };
-      })
-      .slice(0, 5);
-  }, [myAssignments, submissions]);
+      fetchTeacherDashboardData();
+    }
+  }, [loggedInUser]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -127,10 +50,16 @@ const TeacherDashboard = () => {
     return <div>Error: {error}</div>;
   }
 
+  if (!dashboardData) {
+    return <div>No data available.</div>;
+  }
+
+  const { classesToday, assignmentsToGrade, upcomingDueDate, studentQuestionCount, submissionsPerAssignment } = dashboardData;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-3xl font-bold text-slate-800">
-        Welcome back, {teacher?.name}!
+        Welcome back, {loggedInUser?.name}!
       </h1>
       <p className="text-slate-500">Your teaching dashboard for today.</p>
 

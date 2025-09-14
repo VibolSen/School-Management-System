@@ -30,7 +30,7 @@ export default function Header({ toggleSidebar }) {
   // Fetch logged-in user
   useEffect(() => {
     const fetchUser = async () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (!token) return;
 
       try {
@@ -59,7 +59,7 @@ export default function Header({ toggleSidebar }) {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     router.push("/login");
   };
 

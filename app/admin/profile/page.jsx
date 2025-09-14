@@ -20,7 +20,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
         if (!token) return;
 
         const res = await fetch("/api/me", {
@@ -63,7 +63,7 @@ export default function ProfilePage() {
     setError("");
     setSuccess("");
     try {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (!token) return;
 
       const formData = new FormData();

@@ -35,7 +35,7 @@ export default function LoginPage() {
 
       // Save JWT token
       if (data.token) {
-        localStorage.setItem("token", data.token);
+        sessionStorage.setItem("token", data.token);
       }
 
       // ✅ CORRECT: Check role NAME instead of ID

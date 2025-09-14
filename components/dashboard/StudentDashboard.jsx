@@ -1,75 +1,36 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import UsersIcon from "@/components/icons/UsersIcon";
 import BookOpenIcon from "@/components/icons/BookOpenIcon";
 import ChartBarIcon from "@/components/icons/ChartBarIcon";
-import { AttendanceStatus } from "@/lib/types";
 
-const StudentDashboard = () => {
-  const [myProfile, setMyProfile] = useState(null);
-  const [attendance, setAttendance] = useState([]);
-  const [borrowedBooks, setBorrowedBooks] = useState([]);
+const StudentDashboard = ({ loggedInUser }) => {
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // First, get the current user's ID
-        const meResponse = await fetch('/api/me');
-        if (!meResponse.ok) {
-          throw new Error('Failed to fetch user data');
+    if (loggedInUser) {
+      const fetchStudentDashboardData = async () => {
+        try {
+          const res = await fetch(
+            `/api/dashboard/student?studentId=${loggedInUser.id}`
+          );
+          if (!res.ok) throw new Error("Failed to fetch dashboard data");
+          const data = await res.json();
+          setDashboardData(data);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
         }
-        const me = await meResponse.json();
-        const studentId = me.id;
+      };
 
-        // Then, fetch the student's profile, attendance, and borrowed books
-        const [profileResponse, attendanceResponse, booksResponse] = await Promise.all([
-          fetch(`/api/students/${studentId}`),
-          fetch(`/api/attendances?studentId=${studentId}`),
-          fetch(`/api/library?borrowedBy=${studentId}`),
-        ]);
-
-        if (!profileResponse.ok) {
-          throw new Error('Failed to fetch student profile');
-        }
-        if (!attendanceResponse.ok) {
-          throw new Error('Failed to fetch attendance data');
-        }
-        if (!booksResponse.ok) {
-          throw new Error('Failed to fetch borrowed books');
-        }
-
-        const profileData = await profileResponse.json();
-        const attendanceData = await attendanceResponse.json();
-        const booksData = await booksResponse.json();
-
-        setMyProfile(profileData);
-        setAttendance(attendanceData);
-        setBorrowedBooks(booksData);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const overallAttendance = useMemo(() => {
-    if (!myProfile) return "N/A";
-    const myRecords = attendance;
-    if (myRecords.length === 0) return "100%";
-    const presentCount = myRecords.filter(
-      (r) =>
-        r.status === AttendanceStatus.PRESENT ||
-        r.status === AttendanceStatus.LATE
-    ).length;
-    return `${Math.round((presentCount / myRecords.length) * 100)}%`;
-  }, [myProfile, attendance]);
+      fetchStudentDashboardData();
+    }
+  }, [loggedInUser]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -79,9 +40,11 @@ const StudentDashboard = () => {
     return <div>Error: {error}</div>;
   }
 
-  if (!myProfile) {
-    return <div>Student profile not found.</div>;
+  if (!dashboardData) {
+    return <div>No data available.</div>;
   }
+
+  const { myProfile, overallAttendance, borrowedBooks } = dashboardData;
 
   return (
     <div className="space-y-6 animate-fade-in">
