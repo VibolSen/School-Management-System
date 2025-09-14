@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import CourseTable from "./CourseTable";
 import AddCourseModal from "./AddCourseModal";
-import ConfirmationModal from "@/components/ConfirmationModal";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function CourseManagementView() {
   const [courseList, setCourseList] = useState([]);
@@ -85,6 +85,10 @@ export default function CourseManagementView() {
     }
   };
 
+  const handleCancelDelete = () => {
+    setCourseToDelete(null);
+  };
+
   const handleSaveCourse = async (courseData) => {
     try {
       const url = editingCourse
@@ -144,10 +148,11 @@ export default function CourseManagementView() {
         allGroups={allGroups}
       />
 
-      <ConfirmationModal
+      <ConfirmationDialog
         isOpen={!!courseToDelete}
         onClose={() => setCourseToDelete(null)}
         onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
         title="Delete Course"
         message={`Are you sure you want to delete "${courseToDelete?.title}"?`}
       />

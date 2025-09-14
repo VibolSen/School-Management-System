@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import ELibraryGrid from "./ELibraryGrid";
 import AddResourceModal from "./AddResourceModal";
-import ConfirmationModal from "../ConfirmationModal";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 import ResourceDetailModal from "./ResourceDetailModal";
 
 const ELibraryView = ({ loggedInUser }) => {
@@ -91,6 +91,10 @@ const ELibraryView = ({ loggedInUser }) => {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setResourceToDelete(null);
   };
 
   const handleSaveResource = async (resourceData) => {
@@ -226,10 +230,11 @@ const ELibraryView = ({ loggedInUser }) => {
         types={types}
       />
 
-      <ConfirmationModal
+      <ConfirmationDialog
         isOpen={!!resourceToDelete}
         onClose={() => setResourceToDelete(null)}
         onConfirm={() => handleDelete(resourceToDelete)}
+        onCancel={handleCancelDelete}
         title="Delete Resource"
         message={`Are you sure you want to delete "${resourceToDelete?.title}"?`}
       />

@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 const ActivityTypes = () => {
   const [types, setTypes] = useState([]);
   const [newType, setNewType] = useState("");
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const fetchTypes = async () => {
     try {
-      const res = await fetch("/api/activityTypes");
+      const res = await fetch("/api/activity");
       if (!res.ok) throw new Error("Failed to fetch activity types");
       const data = await res.json();
       setTypes(data);
@@ -26,7 +28,7 @@ const ActivityTypes = () => {
     if (!newType.trim()) return;
 
     try {
-      const res = await fetch("/api/activityTypes", {
+      const res = await fetch("/api/activity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newType }),
@@ -41,19 +43,28 @@ const ActivityTypes = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this type?")) return;
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
 
     try {
-      const res = await fetch(`/api/activityTypes?id=${id}`, {
+      const res = await fetch(`/api/activity?id=${itemToDelete}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete");
-      setTypes((prev) => prev.filter((t) => t.id !== id));
+      setTypes((prev) => prev.filter((t) => t.id !== itemToDelete));
+      setItemToDelete(null);
     } catch (error) {
       console.error(error);
       alert(error.message);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
   };
 
   return (
@@ -92,7 +103,7 @@ const ActivityTypes = () => {
                 <td className="border px-4 py-2">{t.name}</td>
                 <td className="border px-4 py-2">
                   <button
-                    onClick={() => handleDelete(t.id)}
+                    onClick={() => handleDeleteRequest(t.id)}
                     className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
                   >
                     Delete
@@ -102,6 +113,16 @@ const ActivityTypes = () => {
             ))}
           </tbody>
         </table>
+      )}
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Activity Type"
+          message="Are you sure you want to delete this type?"
+        />
       )}
     </div>
   );

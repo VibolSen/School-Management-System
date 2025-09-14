@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import DepartmentsTable from "./DepartmentsTable";
 import AddDepartmentModal from "./DepartmentModal";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 // Simple alert-based notification system
 const showMessage = (message, type = "success") => {
@@ -16,6 +17,7 @@ export default function DepartmentManagementView() {
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const API_BASE = "/api/departments";
 
@@ -63,13 +65,16 @@ export default function DepartmentManagementView() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (departmentId) => {
-    if (!window.confirm("Are you sure you want to delete this department?"))
-      return;
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}?id=${departmentId}`, {
+      const response = await fetch(`${API_BASE}?id=${itemToDelete}`, {
         method: "DELETE",
       });
       if (!response.ok) {
@@ -80,12 +85,17 @@ export default function DepartmentManagementView() {
       }
       showMessage("Department deleted successfully!");
       fetchData(); // Refresh the list
+      setItemToDelete(null);
     } catch (err) {
       console.error("Failed to delete department:", err);
       showMessage(`Failed to delete department: ${err.message}`, "error");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
   };
 
   const handleCloseModal = () => {
@@ -155,7 +165,7 @@ export default function DepartmentManagementView() {
         departments={departments}
         onAddDepartmentClick={handleAddClick}
         onEditClick={handleEditClick}
-        onDeleteClick={handleDeleteClick}
+        onDeleteClick={handleDeleteRequest}
         isLoading={isLoading}
       />
 
@@ -167,6 +177,16 @@ export default function DepartmentManagementView() {
           departmentToEdit={editingDepartment}
           allCourses={allCourses}
           isLoading={isLoading}
+        />
+      )}
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Department"
+          message="Are you sure you want to delete this department?"
         />
       )}
     </div>

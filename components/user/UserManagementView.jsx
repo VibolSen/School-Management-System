@@ -1,11 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+
+// Assuming these components are in the same directory or adjust the path
 import UserTable from "./UserTable";
 import UserModal from "./UserModal";
+import ConfirmationDialog from "../ConfirmationDialog";
+
+// Assuming Notification is a shared component
 import Notification from "@/components/Notification";
 
 export default function UserManagementView() {
+  // --- STATE MANAGEMENT ---
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,49 +24,42 @@ export default function UserManagementView() {
     type: "",
   });
 
+  // New state for the custom confirmation dialog
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
+  // --- UTILITY FUNCTIONS ---
   const showMessage = (message, type = "success") => {
     setNotification({ show: true, message, type });
-    setTimeout(
-      () => setNotification({ show: false, message: "", type: "" }),
-      3000
-    );
+    setTimeout(() => {
+      setNotification({ show: false, message: "", type: "" });
+    }, 3000);
   };
 
-  // Fetch users from API
+  // --- DATA FETCHING ---
   const fetchUsers = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
     try {
-      const res = await fetch("/api/users");
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
+      const response = await fetch("/api/users");
+      if (!response.ok) throw new Error("Failed to fetch users.");
+      const data = await response.json();
       setUsers(data);
     } catch (err) {
-      console.error(err);
-      setError("Failed to load users");
-      showMessage("Failed to load users", "error");
+      setError(err.message);
+      showMessage(err.message, "error");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Fetch roles from API
   const fetchRoles = useCallback(async () => {
     try {
-      const res = await fetch("/api/roles");
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
+      const response = await fetch("/api/roles");
+      if (!response.ok) throw new Error("Failed to fetch roles.");
+      const data = await response.json();
       setRoles(data);
     } catch (err) {
-      console.error(err);
-      // Fallback to default roles if API fails
-      setRoles([
-        { id: "admin", name: "Admin" },
-        { id: "faculty", name: "Faculty" },
-        { id: "hr", name: "HR" },
-        { id: "students", name: "Student" },
-        { id: "teacher", name: "Teacher" },
-      ]);
+      setError(err.message);
+      showMessage(err.message, "error");
     }
   }, []);
 
@@ -69,6 +68,7 @@ export default function UserManagementView() {
     fetchRoles();
   }, [fetchUsers, fetchRoles]);
 
+  // --- EVENT HANDLERS ---
   const handleAddClick = () => {
     setEditingUser(null);
     setIsModalOpen(true);
@@ -79,53 +79,6 @@ export default function UserManagementView() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (userId) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/users?id=${userId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || `HTTP error ${res.status}`);
-      }
-      setUsers(users.filter((u) => u.id !== userId));
-      showMessage("User deleted successfully!");
-    } catch (err) {
-      console.error(err);
-      showMessage(`Failed to delete user: ${err.message}`, "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleToggleStatus = async (userId, currentStatus) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/users?id=${userId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !currentStatus }),
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || `HTTP error ${res.status}`);
-      }
-      setUsers(
-        users.map((u) =>
-          u.id === userId ? { ...u, isActive: !currentStatus } : u
-        )
-      );
-      showMessage(
-        `User ${!currentStatus ? "activated" : "deactivated"} successfully!`
-      );
-    } catch (err) {
-      console.error(err);
-      showMessage(`Failed to update status: ${err.message}`, "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingUser(null);
@@ -133,60 +86,109 @@ export default function UserManagementView() {
 
   const handleSaveUser = async (userData) => {
     setIsLoading(true);
+    const method = userData.id ? "PUT" : "POST";
+    const endpoint = userData.id
+      ? `/api/users?id=${userData.id}`
+      : "/api/users";
+
     try {
-      // Clean payload, remove fields not needed in the backend
-      const payload = {
-        name: userData.name,
-        email: userData.email,
-        roleId: userData.roleId,
-        contactNumber: userData.contactNumber,
-        isActive: userData.isActive,
-      };
+      const response = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
 
-      if (!editingUser) {
-        payload.password = userData.password;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || `HTTP error! Status: ${response.status}`
+        );
       }
 
-      const res = await fetch(
-        editingUser ? `/api/users?id=${editingUser.id}` : "/api/users",
-        {
-          method: editingUser ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || `HTTP error ${res.status}`);
-      }
-      showMessage(`User ${editingUser ? "updated" : "added"} successfully!`);
-      fetchUsers();
+      showMessage(`User ${userData.id ? "updated" : "created"} successfully!`);
+      await fetchUsers(); // Re-fetch users to get the latest data
     } catch (err) {
-      console.error(err);
-      showMessage(`Failed to save user: ${err.message}`, "error");
+      console.error("Save user error:", err);
+      showMessage(err.message, "error");
     } finally {
       setIsLoading(false);
       handleCloseModal();
     }
   };
 
-  if (isLoading && users.length === 0) {
-    return <p className="text-center py-10">Loading user data...</p>;
+  const handleToggleStatus = async (userId, currentStatus) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/users/status?id=${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: !currentStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+
+      setUsers(
+        users.map((u) =>
+          u.id === userId ? { ...u, status: !currentStatus } : u
+        )
+      );
+      showMessage("User status updated successfully!");
+    } catch (err) {
+      console.error(err);
+      showMessage(err.message, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 1: Open the confirmation dialog when delete is clicked
+  const handleDeleteClick = (userId) => {
+    const user = users.find((u) => u.id === userId);
+    if (user) {
+      setUserToDelete(user);
+      setIsConfirmModalOpen(true);
+    }
+  };
+
+  // Step 2: Handle the actual deletion after user confirms
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/users?id=${userToDelete.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(
+          errData.error || `Failed to delete user. Status: ${res.status}`
+        );
+      }
+      setUsers(users.filter((u) => u.id !== userToDelete.id));
+      showMessage("User deleted successfully!");
+    } catch (err) {
+      console.error("Delete user error:", err);
+      showMessage(err.message, "error");
+    } finally {
+      setIsLoading(false);
+      setIsConfirmModalOpen(false); // Close the dialog on completion
+      setUserToDelete(null); // Reset the user to delete
+    }
+  };
+
+  // Step 3: Handle cancellation from the dialog
+  const handleCancelDelete = () => {
+    setIsConfirmModalOpen(false);
+    setUserToDelete(null);
+  };
+
+  // --- RENDER LOGIC ---
+  if (isLoading && users.length === 0 && !error) {
+    return <div className="text-center p-8">Loading users...</div>;
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-10 text-red-600">
-        <p>{error}</p>
-        <button
-          onClick={fetchUsers}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
+  if (error && users.length === 0) {
+    return <div className="text-center p-8 text-red-600">Error: {error}</div>;
   }
 
   return (
@@ -195,7 +197,7 @@ export default function UserManagementView() {
         show={notification.show}
         message={notification.message}
         type={notification.type}
-        onClose={() => setNotification({ show: false, message: "", type: "" })}
+        onClose={() => setNotification({ ...notification, show: false })}
       />
 
       <h1 className="text-3xl font-bold text-slate-800">User Management</h1>
@@ -207,9 +209,10 @@ export default function UserManagementView() {
         onEditClick={handleEditClick}
         onDeleteClick={handleDeleteClick}
         onToggleStatus={handleToggleStatus}
-        isLoading={isLoading}
+        isLoading={isLoading && users.length > 0} // Show inline loading only when refreshing
       />
 
+      {/* RENDER MODALS & DIALOGS */}
       {isModalOpen && (
         <UserModal
           isOpen={isModalOpen}
@@ -220,6 +223,15 @@ export default function UserManagementView() {
           isLoading={isLoading}
         />
       )}
+
+      <ConfirmationDialog
+        isOpen={isConfirmModalOpen}
+        title="Confirm Deletion"
+        message={`Are you sure you want to delete the user "${userToDelete?.name}"? This action cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

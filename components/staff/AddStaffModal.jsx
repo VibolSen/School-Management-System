@@ -8,14 +8,11 @@ export default function AddStaffModal({
   onSave,
   staffToEdit,
   roles,
-  departments,
   isLoading = false,
 }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    contactNumber: "",
-    department: "",
     roleId: "",
     password: "",
     isActive: true,
@@ -29,8 +26,6 @@ export default function AddStaffModal({
         setFormData({
           name: staffToEdit.name || "",
           email: staffToEdit.email || "",
-          contactNumber: staffToEdit.contactNumber || "",
-          department: staffToEdit.department || "",
           roleId: staffToEdit.roleId || roles?.[0]?.id || "",
           isActive: staffToEdit.isActive ?? true,
           password: "",
@@ -39,8 +34,6 @@ export default function AddStaffModal({
         setFormData({
           name: "",
           email: "",
-          contactNumber: "",
-          department: "",
           roleId: roles?.[0]?.id || "",
           password: "",
           isActive: true,
@@ -171,41 +164,6 @@ export default function AddStaffModal({
             {errors.email && (
               <p className="text-red-500 text-xs mt-1">{errors.email}</p>
             )}
-          </div>
-
-          {/* Contact Number */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              name="contactNumber"
-              placeholder="Phone Number"
-              value={formData.contactNumber}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Department */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Department
-            </label>
-            <select
-              name="department"
-              value={formData.department}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-            >
-              <option value="">Select Department</option>
-              {(departments || []).map((dep) => (
-                <option key={dep.id} value={dep.name}>
-                  {dep.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Role */}

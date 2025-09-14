@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import StaffTable from "./StaffTable";
 import AddStaffModal from "./AddStaffModal";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 // Simple alert notification
 const showMessage = (message, type = "success") => {
@@ -12,11 +13,11 @@ const showMessage = (message, type = "success") => {
 export default function StaffManagementView() {
   const [staffList, setStaffList] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   // Fetch staff
   const fetchStaff = useCallback(async () => {
@@ -68,25 +69,10 @@ export default function StaffManagementView() {
     }
   }, []);
 
-
-  // Fetch departments dynamically
-  const fetchDepartments = useCallback(async () => {
-    try {
-      const res = await fetch("/api/departments");
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
-      setDepartments(data);
-    } catch (err) {
-      console.error(err);
-      showMessage("Failed to load departments", "error");
-    }
-  }, []);
-
   useEffect(() => {
     fetchStaff();
     fetchRoles();
-    fetchDepartments();
-  }, [fetchStaff, fetchRoles, fetchDepartments]);
+  }, [fetchStaff, fetchRoles]);
 
   const handleAddClick = () => {
     setEditingStaff(null);
@@ -98,24 +84,33 @@ export default function StaffManagementView() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this staff member?"))
-      return;
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/users?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/users?id=${itemToDelete}`, { method: "DELETE" });
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || `HTTP error ${res.status}`);
       }
-      setStaffList((prev) => prev.filter((s) => s.id !== id));
+      setStaffList((prev) => prev.filter((s) => s.id !== itemToDelete));
       showMessage("Staff member deleted successfully!");
+      setItemToDelete(null);
     } catch (err) {
       console.error(err);
       showMessage(`Failed to delete staff: ${err.message}`, "error");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
   };
 
   const handleToggleStatus = async (id, currentStatus) => {
@@ -159,8 +154,6 @@ export default function StaffManagementView() {
       const dataToSend = {
         name: staffData.name,
         email: staffData.email,
-        contactNumber: staffData.contactNumber,
-        department: staffData.department,
         isActive: staffData.isActive,
         roleId: staffData.roleId,
       };
@@ -224,7 +217,7 @@ export default function StaffManagementView() {
         allRoles={roles}
         onAddStaffClick={handleAddClick}
         onEditClick={handleEditClick}
-        onDeleteClick={handleDeleteClick}
+        onDeleteClick={handleDeleteRequest}
         onToggleStatus={handleToggleStatus}
         isLoading={isLoading}
       />
@@ -236,8 +229,17 @@ export default function StaffManagementView() {
           onSave={handleSaveStaff}
           staffToEdit={editingStaff}
           roles={roles}
-          departments={departments}
           isLoading={isLoading}
+        />
+      )}
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Staff Member"
+          message="Are you sure you want to delete this staff member?"
         />
       )}
     </div>

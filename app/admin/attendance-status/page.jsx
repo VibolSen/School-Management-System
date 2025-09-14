@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 const API_ROUTE = '/api/attendance-status';
 
@@ -11,6 +12,7 @@ const AttendanceStatusManager = () => {
   const [editingStatusName, setEditingStatusName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   // Fetch all statuses
   const fetchStatuses = async () => {
@@ -73,17 +75,26 @@ const AttendanceStatusManager = () => {
     }
   };
 
-  // Delete status
-  const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this status?')) return;
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
     try {
-      const res = await fetch(`${API_ROUTE}?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_ROUTE}?id=${itemToDelete}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
       fetchStatuses();
+      setItemToDelete(null);
     } catch (err) {
       console.error(err);
       setError('Failed to delete status.');
     }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
   };
 
   return (
@@ -147,7 +158,7 @@ const AttendanceStatusManager = () => {
                   </button>
                 )}
                 <button
-                  onClick={() => handleDelete(status.id)}
+                  onClick={() => handleDeleteRequest(status.id)}
                   className="bg-red-600 text-white px-2 py-1 rounded-md hover:bg-red-700"
                 >
                   Delete
@@ -156,6 +167,16 @@ const AttendanceStatusManager = () => {
             </li>
           ))}
         </ul>
+      )}
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Attendance Status"
+          message="Are you sure you want to delete this status?"
+        />
       )}
     </div>
   );

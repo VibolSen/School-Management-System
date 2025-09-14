@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import AddTeacherModal from "./AddTeacherModal";
 import TeacherTable from "./TeacherTable";
-import ConfirmationModal from "@/components/ConfirmationModal"; // Assuming you have this component
+import ConfirmationDialog from "@/components/ConfirmationDialog"; // Assuming you have this component
 
 const showMessage = (message, type = "success") => {
   // Replace with a proper toast notification library in a real app
@@ -126,6 +126,10 @@ export default function TeacherManagementView() {
     }
   };
 
+  const handleCancelDelete = () => {
+    setTeacherToDelete(null);
+  };
+
   const handleSaveTeacher = async (teacherData) => {
     setIsLoading(true);
     try {
@@ -187,10 +191,11 @@ export default function TeacherManagementView() {
         />
       )}
 
-      <ConfirmationModal
+      <ConfirmationDialog
         isOpen={!!teacherToDelete}
         onClose={() => setTeacherToDelete(null)}
         onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
         title="Delete Teacher"
         message={`Are you sure you want to delete "${teacherToDelete?.name}"?`}
       />

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import AddStudentModal from "./AddStudentModal";
 import StudentTable from "./StudentTable";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 const showMessage = (message, type = "success") => {
   alert(type === "success" ? `✅ ${message}` : `❌ ${message}`);
@@ -16,6 +17,7 @@ export default function StudentManagementView() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -79,24 +81,32 @@ export default function StudentManagementView() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (studentId) => {
-    if (!window.confirm("Are you sure you want to delete this student?"))
-      return;
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
 
     try {
-      const res = await fetch(`/api/users?id=${studentId}`, {
+      const res = await fetch(`/api/users?id=${itemToDelete}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || `HTTP error! status: ${res.status}`);
       }
-      setStudents((prev) => prev.filter((s) => s.id !== studentId));
+      setStudents((prev) => prev.filter((s) => s.id !== itemToDelete));
       showMessage("Student deleted successfully!");
+      setItemToDelete(null);
     } catch (err) {
       console.error("Failed to delete student:", err);
       showMessage(`Failed to delete student: ${err.message}`, "error");
     }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
   };
 
   const handleCloseModal = () => {
@@ -207,7 +217,7 @@ export default function StudentManagementView() {
         allCourses={courses}
         onAddStudentClick={handleAddClick}
         onEditClick={handleEditClick}
-        onDeleteClick={handleDeleteClick}
+        onDeleteClick={handleDeleteRequest}
       />
 
       {isModalOpen && (
@@ -217,6 +227,16 @@ export default function StudentManagementView() {
           onSaveStudent={handleSaveStudent}
           studentToEdit={editingStudent}
           allCourses={courses}
+        />
+      )}
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Student"
+          message="Are you sure you want to delete this student?"
         />
       )}
     </div>

@@ -71,7 +71,7 @@ export default function UserTable({
 
   if (isLoading && users.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-md">
+      <div className="bg-white rounded-xl shadow-md">
         <div className="flex justify-center items-center py-10">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           <span className="ml-3">Loading user data...</span>
@@ -81,7 +81,7 @@ export default function UserTable({
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md">
+    <div className="bg-white rounded-xl shadow-md">
       {/* Header & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
         <h2 className="text-xl font-semibold text-slate-800">User Directory</h2>

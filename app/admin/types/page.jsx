@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function TypesPage() {
   const [types, setTypes] = useState([]);
   const [newTypeName, setNewTypeName] = useState('');
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   // Fetch types
   const fetchTypes = async () => {
@@ -51,11 +53,22 @@ export default function TypesPage() {
     }
   };
   
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this type?')) return;
-    const res = await fetch(`/api/types?id=${id}`, { method: 'DELETE' });
-    if (res.ok) fetchTypes();
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    const res = await fetch(`/api/types?id=${itemToDelete}`, { method: 'DELETE' });
+    if (res.ok) {
+      fetchTypes();
+      setItemToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
   };
   
   return (
@@ -98,7 +111,7 @@ export default function TypesPage() {
                 </button>
                 <button
                   className="bg-red-600 text-white px-2 py-1 rounded"
-                  onClick={() => handleDelete(t.id)}
+                  onClick={() => handleDeleteRequest(t.id)}
                 >
                   Delete
                 </button>
@@ -107,6 +120,16 @@ export default function TypesPage() {
           ))}
         </tbody>
       </table>
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Material Type"
+          message="Are you sure you want to delete this type?"
+        />
+      )}
     </div>
   );
 }

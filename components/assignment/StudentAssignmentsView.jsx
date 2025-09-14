@@ -6,12 +6,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import AssignmentsTable from "./AssignmentsTable";
 import StudentAssignmentModal from "./StudentAssignmentModal";
 import Notification from "@/components/Notification"; // Assuming a notification component
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function StudentAssignmentView() {
   const [assignments, setAssignments] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -55,15 +57,15 @@ export default function StudentAssignmentView() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (id) => {
-    if (
-      !window.confirm(
-        "This will delete the assignment for all students in the group. Are you sure?"
-      )
-    )
-      return;
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
     try {
-      const res = await fetch(`/api/assignments?id=${id}`, {
+      const res = await fetch(`/api/assignments?id=${itemToDelete}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -72,9 +74,14 @@ export default function StudentAssignmentView() {
       }
       showMessage("Assignment deleted for all students successfully!");
       fetchAssignments(); // Refresh the list
+      setItemToDelete(null);
     } catch (err) {
       showMessage(err.message, "error");
     }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
   };
 
   const handleCloseModal = () => {
@@ -130,7 +137,7 @@ export default function StudentAssignmentView() {
         assignments={assignments}
         onAddClick={handleAddClick}
         onEditClick={handleEditClick}
-        onDeleteClick={handleDeleteClick}
+        onDeleteClick={handleDeleteRequest}
         isLoading={isLoading}
       />
       {isModalOpen && (
@@ -139,6 +146,16 @@ export default function StudentAssignmentView() {
           onClose={handleCloseModal}
           onSave={handleSaveAssignment}
           assignmentToEdit={editingAssignment}
+        />
+      )}
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Assignment"
+          message="This will delete the assignment for all students in the group. Are you sure?"
         />
       )}
     </div>

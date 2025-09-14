@@ -51,7 +51,7 @@ const AboutUs = () => {
   const teamMembers = [
     {
       name: "Mr. Sen Vibol",
-      image: "/vibol.jpg",
+      image: "/profile.jpg",
       role: "Lead Backend Developer & System Architect",
       description:
         "Passionate about creating robust, scalable systems to streamline educational administration.",
@@ -166,7 +166,7 @@ const AboutUs = () => {
             >
               <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
                 <Users className="w-5 h-5" />
-                <span className="text-sm font-medium">3 Team Members</span>
+                <span className="text-sm font-medium">Team Members</span>
               </div>
               <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
                 <BookOpen className="w-5 h-5" />
@@ -217,7 +217,7 @@ const AboutUs = () => {
             <div className="w-32 h-32 mx-auto relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse"></div>
               <Image
-                src={"/vibol.jpg" || "/placeholder.svg"}
+                src={"/profile.jpg" || "/placeholder.svg"}
                 alt={"Mr. Sen Vibol"}
                 width={128}
                 height={128}

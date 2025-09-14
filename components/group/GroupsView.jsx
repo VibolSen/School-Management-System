@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import GroupTable from "./GroupTable";
 import AddGroupModal from "./AddGroupModal";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 // Simple alert notification
 const showMessage = (message, type = "success") => {
@@ -16,6 +17,7 @@ export default function GroupsView() {
   const [editingGroup, setEditingGroup] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -57,21 +59,31 @@ export default function GroupsView() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this group?")) return;
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/groups?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/groups?id=${itemToDelete}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete group.");
 
       showMessage("Group deleted successfully!");
       fetchData();
+      setItemToDelete(null);
     } catch (err) {
       console.error(err);
       showMessage(err.message, "error");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
   };
 
   const handleCloseModal = () => {
@@ -133,7 +145,7 @@ export default function GroupsView() {
         groups={groups}
         onAddGroupClick={handleAddClick}
         onEditClick={handleEditClick}
-        onDeleteClick={handleDeleteClick}
+        onDeleteClick={handleDeleteRequest}
         isLoading={isLoading}
       />
 
@@ -145,6 +157,16 @@ export default function GroupsView() {
           groupToEdit={editingGroup}
           allStudents={allStudents}
           isLoading={isLoading}
+        />
+      )}
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Group"
+          message="Are you sure you want to delete this group?"
         />
       )}
     </div>

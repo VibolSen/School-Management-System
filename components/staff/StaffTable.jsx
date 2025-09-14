@@ -24,7 +24,6 @@ export default function StaffTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [roleFilter, setRoleFilter] = useState("All");
-  const [departmentFilter, setDepartmentFilter] = useState("All");
   const [sortConfig, setSortConfig] = useState({
     key: null,
     direction: "ascending",
@@ -34,9 +33,7 @@ export default function StaffTable({
     return staffList.filter((staff) => {
       const matchesSearch =
         staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        staff.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (staff.contactNumber &&
-          staff.contactNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+        staff.email.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
         statusFilter === "All" ||
@@ -44,13 +41,9 @@ export default function StaffTable({
 
       const matchesRole = roleFilter === "All" || staff.roleId === roleFilter;
 
-      const matchesDepartment =
-        departmentFilter === "All" ||
-        (staff.department && staff.department === departmentFilter);
-
-      return matchesSearch && matchesStatus && matchesRole && matchesDepartment;
+      return matchesSearch && matchesStatus && matchesRole;
     });
-  }, [staffList, searchTerm, statusFilter, roleFilter, departmentFilter]);
+  }, [staffList, searchTerm, statusFilter, roleFilter]);
 
   const sortedStaff = useMemo(() => {
     if (!sortConfig.key) return filteredStaff;
@@ -79,17 +72,9 @@ export default function StaffTable({
     return sortConfig.direction === "ascending" ? "↑" : "↓";
   };
 
-  // Get unique departments for filter
-  const uniqueDepartments = useMemo(() => {
-    const departments = [
-      ...new Set(staffList.map((staff) => staff.department).filter(Boolean)),
-    ];
-    return departments.sort();
-  }, [staffList]);
-
   if (isLoading) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-md">
+      <div className="bg-white rounded-xl shadow-md">
         <div className="flex justify-center items-center py-10">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           <span className="ml-3">Loading staff data...</span>
@@ -99,7 +84,7 @@ export default function StaffTable({
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md">
+    <div className="bg-white rounded-xl shadow-md">
       {/* Header & Filters with Add Staff button on the right */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
         <h2 className="text-xl font-semibold text-slate-800">
@@ -108,7 +93,7 @@ export default function StaffTable({
         <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-2">
           <input
             type="text"
-            placeholder="Search by name, email, phone..."
+            placeholder="Search by name, email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full md:w-48 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -134,20 +119,6 @@ export default function StaffTable({
               </option>
             ))}
           </select>
-          {uniqueDepartments.length > 0 && (
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-            >
-              <option value="All">All Departments</option>
-              {uniqueDepartments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          )}
           <button
             onClick={onAddStaffClick}
             className="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-700 transition"
@@ -170,18 +141,11 @@ export default function StaffTable({
                 Name {getSortIndicator("name")}
               </th>
               <th className="px-6 py-3">Email</th>
-              <th className="px-6 py-3">Phone</th>
               <th
                 className="px-6 py-3 cursor-pointer"
                 onClick={() => handleSort("roleId")}
               >
                 Role {getSortIndicator("roleId")}
-              </th>
-              <th
-                className="px-6 py-3 cursor-pointer"
-                onClick={() => handleSort("department")}
-              >
-                Department {getSortIndicator("department")}
               </th>
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3 text-center">Actions</th>
@@ -190,7 +154,7 @@ export default function StaffTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {sortedStaff.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-500">
+                <td colSpan={5} className="text-center py-8 text-gray-500">
                   No staff members found.
                 </td>
               </tr>
@@ -204,16 +168,10 @@ export default function StaffTable({
                     {staff.email}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {staff.contactNumber || "N/A"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
                     <span className="px-2 py-1 text-xs font-semibold text-sky-800 bg-sky-100 rounded-full">
                       {allRoles.find((r) => r.id === staff.roleId)?.name ||
                         staff.roleId}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {staff.department || "N/A"}
                   </td>
                   <td className="px-6 py-4">
                     {getStatusBadge(staff.isActive)}
