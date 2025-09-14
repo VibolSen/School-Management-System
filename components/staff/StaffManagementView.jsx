@@ -4,11 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import StaffTable from "./StaffTable";
 import AddStaffModal from "./AddStaffModal";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
-
-// Simple alert notification
-const showMessage = (message, type = "success") => {
-  alert(type === "success" ? `✅ ${message}` : `❌ ${message}`);
-};
+import Notification from "@/components/Notification";
 
 export default function StaffManagementView() {
   const [staffList, setStaffList] = useState([]);
@@ -18,6 +14,18 @@ export default function StaffManagementView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   // Fetch staff
   const fetchStaff = useCallback(async () => {
@@ -209,6 +217,12 @@ export default function StaffManagementView() {
 
   return (
     <div className="space-y-6">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       {/* Main header without Add Staff button */}
       <h1 className="text-3xl font-bold text-slate-800">Staff Management</h1>
 

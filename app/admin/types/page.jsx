@@ -2,16 +2,35 @@
 
 import React, { useState, useEffect } from 'react';
 import ConfirmationDialog from "@/components/ConfirmationDialog";
+import Notification from "@/components/Notification";
 
 export default function TypesPage() {
   const [types, setTypes] = useState([]);
   const [newTypeName, setNewTypeName] = useState('');
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   // Fetch types
   const fetchTypes = async () => {
-    const res = await fetch('/api/types');
-    if (res.ok) setTypes(await res.json());
+    try {
+      const res = await fetch('/api/types');
+      if (!res.ok) throw new Error("Failed to fetch types");
+      setTypes(await res.json());
+    } catch (error) {
+      console.error(error);
+      showMessage(error.message, "error");
+    }
   };
 
   useEffect(() => { fetchTypes(); }, []);
@@ -19,14 +38,19 @@ export default function TypesPage() {
   // Add type
   const handleAdd = async () => {
     if (!newTypeName.trim()) return;
-    const res = await fetch('/api/types', {
-      method: 'POST',
-      body: JSON.stringify({ name: newTypeName }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch('/api/types', {
+        method: 'POST',
+        body: JSON.stringify({ name: newTypeName }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error("Failed to add type");
       setNewTypeName('');
       fetchTypes();
+      showMessage("Type added successfully!");
+    } catch (error) {
+      console.error(error);
+      showMessage(error.message, "error");
     }
   };
 
@@ -44,12 +68,14 @@ export default function TypesPage() {
   
       if (res.ok) {
         fetchTypes();
+        showMessage("Type updated successfully!");
       } else {
         const err = await res.json();
-        alert(`Edit failed: ${err.error}`);
+        showMessage(`Edit failed: ${err.error}`, "error");
       }
     } catch (error) {
       console.error('Edit type failed:', error);
+      showMessage("Failed to edit type.", "error");
     }
   };
   
@@ -60,10 +86,15 @@ export default function TypesPage() {
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
 
-    const res = await fetch(`/api/types?id=${itemToDelete}`, { method: 'DELETE' });
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/types?id=${itemToDelete}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Failed to delete type");
       fetchTypes();
       setItemToDelete(null);
+      showMessage("Type deleted successfully!");
+    } catch (error) {
+      console.error(error);
+      showMessage(error.message, "error");
     }
   };
 
@@ -73,6 +104,12 @@ export default function TypesPage() {
   
   return (
     <div className="p-6">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       <h1 className="text-2xl font-bold mb-4">Material Types</h1>
 
       <div className="mb-4 flex gap-2">

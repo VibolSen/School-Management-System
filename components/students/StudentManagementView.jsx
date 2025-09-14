@@ -4,10 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import AddStudentModal from "./AddStudentModal";
 import StudentTable from "./StudentTable";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
-
-const showMessage = (message, type = "success") => {
-  alert(type === "success" ? `✅ ${message}` : `❌ ${message}`);
-};
+import Notification from "@/components/Notification";
 
 export default function StudentManagementView() {
   const [students, setStudents] = useState([]);
@@ -18,6 +15,18 @@ export default function StudentManagementView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -206,6 +215,12 @@ export default function StudentManagementView() {
 
   return (
     <div className="space-y-6">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-slate-800">
           Student Management

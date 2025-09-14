@@ -4,11 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import AddTeacherModal from "./AddTeacherModal";
 import TeacherTable from "./TeacherTable";
 import ConfirmationDialog from "@/components/ConfirmationDialog"; // Assuming you have this component
-
-const showMessage = (message, type = "success") => {
-  // Replace with a proper toast notification library in a real app
-  alert(type === "success" ? `✅ ${message}` : `❌ ${message}`);
-};
+import Notification from "@/components/Notification";
 
 export default function TeacherManagementView() {
   const [teachers, setTeachers] = useState([]);
@@ -19,6 +15,18 @@ export default function TeacherManagementView() {
   const [teacherToDelete, setTeacherToDelete] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -168,6 +176,12 @@ export default function TeacherManagementView() {
 
   return (
     <div className="space-y-6">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       <h1 className="text-3xl font-bold text-slate-800">Teacher Management</h1>
 
       <TeacherTable

@@ -4,16 +4,28 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import AddExamModal from "./AddExamModal"; // Make sure this path is correct
+import Notification from "@/components/Notification";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function ExamManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [courses, setCourses] = useState([]);
-
-  // --- NEW STATE: To hold the list of exams and loading status ---
   const [exams, setExams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
 
-  // --- NEW FUNCTION: Fetches all exams from your API ---
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
+
   const fetchExams = async () => {
     try {
       setIsLoading(true); // Show loading indicator
@@ -24,12 +36,12 @@ export default function ExamManagement() {
     } catch (err) {
       console.error(err);
       setExams([]); // Clear exams on error
+      showMessage("Failed to fetch exams", "error");
     } finally {
       setIsLoading(false); // Hide loading indicator
     }
   };
 
-  // --- UPDATED useEffect: Fetches both courses and exams on page load ---
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -38,6 +50,7 @@ export default function ExamManagement() {
         setCourses(Array.isArray(data) ? data : []);
       } catch {
         setCourses([]);
+        showMessage("Failed to fetch courses", "error");
       }
     };
 
@@ -45,11 +58,41 @@ export default function ExamManagement() {
     fetchExams(); // Also fetch exams when the component mounts
   }, []);
 
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      const res = await fetch(`/api/exam?id=${itemToDelete}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      fetchExams();
+      setItemToDelete(null);
+      showMessage("Exam deleted successfully!");
+    } catch (err) {
+      console.error(err);
+      showMessage('Failed to delete exam.', "error");
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setItemToDelete(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <Head>
         <title>Exam Management</title>
       </Head>
+
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
 
       {/* Header section (no changes here) */}
       <div className="flex justify-between items-center mb-8 px-4 sm:px-6 lg:px-8">
@@ -100,7 +143,7 @@ export default function ExamManagement() {
                   <button className="text-blue-600 hover:underline text-sm font-medium">
                     Edit
                   </button>
-                  <button className="text-red-600 hover:underline text-sm font-medium ml-4">
+                  <button onClick={() => handleDeleteRequest(exam.id)} className="text-red-600 hover:underline text-sm font-medium ml-4">
                     Delete
                   </button>
                 </div>
@@ -119,8 +162,22 @@ export default function ExamManagement() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         courses={courses}
-        onExamAdded={fetchExams} // This prop will trigger a refresh
+        onExamAdded={() => {
+          fetchExams();
+          showMessage("Exam added successfully!");
+        }}
       />
+
+      {itemToDelete && (
+        <ConfirmationDialog
+          isOpen={!!itemToDelete}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          title="Delete Exam"
+          message="Are you sure you want to delete this exam?"
+        />
+      )}
     </div>
   );
 }

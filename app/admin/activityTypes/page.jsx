@@ -2,11 +2,24 @@
 
 import React, { useEffect, useState } from "react";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
+import Notification from "@/components/Notification";
 
 const ActivityTypes = () => {
   const [types, setTypes] = useState([]);
   const [newType, setNewType] = useState("");
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   const fetchTypes = async () => {
     try {
@@ -16,6 +29,7 @@ const ActivityTypes = () => {
       setTypes(data);
     } catch (error) {
       console.error(error);
+      showMessage(error.message, "error");
     }
   };
 
@@ -37,9 +51,10 @@ const ActivityTypes = () => {
       const data = await res.json();
       setTypes((prev) => [...prev, data]);
       setNewType("");
+      showMessage("Activity type added successfully!");
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      showMessage(error.message, "error");
     }
   };
 
@@ -57,9 +72,10 @@ const ActivityTypes = () => {
       if (!res.ok) throw new Error("Failed to delete");
       setTypes((prev) => prev.filter((t) => t.id !== itemToDelete));
       setItemToDelete(null);
+      showMessage("Activity type deleted successfully!");
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      showMessage(error.message, "error");
     }
   };
 
@@ -69,6 +85,12 @@ const ActivityTypes = () => {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       <h1 className="text-2xl font-bold mb-4">Activity Types</h1>
 
       <form onSubmit={handleAdd} className="mb-6 flex gap-2">

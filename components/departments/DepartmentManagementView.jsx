@@ -4,11 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import DepartmentsTable from "./DepartmentsTable";
 import AddDepartmentModal from "./DepartmentModal";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
-
-// Simple alert-based notification system
-const showMessage = (message, type = "success") => {
-  alert(type === "success" ? `✅ ${message}` : `❌ ${message}`);
-};
+import Notification from "@/components/Notification"; // Import Notification component
 
 export default function DepartmentManagementView() {
   const [departments, setDepartments] = useState([]);
@@ -18,8 +14,20 @@ export default function DepartmentManagementView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
 
   const API_BASE = "/api/departments";
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   // Fetch all necessary data
   const fetchData = useCallback(async () => {
@@ -157,6 +165,12 @@ export default function DepartmentManagementView() {
 
   return (
     <div className="space-y-6">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       <h1 className="text-3xl font-bold text-slate-800">
         Department Management
       </h1>

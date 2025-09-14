@@ -5,6 +5,7 @@ import ELibraryGrid from "./ELibraryGrid";
 import AddResourceModal from "./AddResourceModal";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import ResourceDetailModal from "./ResourceDetailModal";
+import Notification from "@/components/Notification";
 
 const ELibraryView = ({ loggedInUser }) => {
   const [resources, setResources] = useState([]);
@@ -18,6 +19,18 @@ const ELibraryView = ({ loggedInUser }) => {
   const [editingResource, setEditingResource] = useState(null);
   const [resourceToDelete, setResourceToDelete] = useState(null);
   const [types, setTypes] = useState([]);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   // Safe fetch resources
   const fetchResources = async () => {
@@ -30,6 +43,7 @@ const ELibraryView = ({ loggedInUser }) => {
     } catch (e) {
       console.error("Failed to fetch resources:", e);
       setResources([]);
+      showMessage("Failed to fetch resources", "error");
     }
   };
 
@@ -43,6 +57,7 @@ const ELibraryView = ({ loggedInUser }) => {
     } catch (e) {
       console.error("Failed to fetch types:", e);
       setTypes([]);
+      showMessage("Failed to fetch types", "error");
     }
   };
 
@@ -57,6 +72,7 @@ const ELibraryView = ({ loggedInUser }) => {
     } catch (e) {
       console.error("Failed to fetch departments:", e);
       setDepartments([]);
+      showMessage("Failed to fetch departments", "error");
     }
   };
 
@@ -88,8 +104,10 @@ const ELibraryView = ({ loggedInUser }) => {
 
       // Close the modal
       setResourceToDelete(null);
+      showMessage("Resource deleted successfully!");
     } catch (e) {
       console.error(e);
+      showMessage(e.message, "error");
     }
   };
 
@@ -100,11 +118,13 @@ const ELibraryView = ({ loggedInUser }) => {
   const handleSaveResource = async (resourceData) => {
     if (!loggedInUser) {
       console.error("No logged-in user!");
+      showMessage("You must be logged in to save a resource.", "error");
       return;
     }
 
     if (!resourceData.typeId) {
       console.error("Material type is required!");
+      showMessage("Material type is required.", "error");
       return;
     }
 
@@ -149,8 +169,10 @@ const ELibraryView = ({ loggedInUser }) => {
       fetchResources();
       setIsEditModalOpen(false);
       setEditingResource(null);
+      showMessage(`Resource ${editingResource ? "updated" : "added"} successfully!`);
     } catch (err) {
       console.error("Failed to save resource", err);
+      showMessage(err.message, "error");
     }
   };
 
@@ -167,6 +189,12 @@ const ELibraryView = ({ loggedInUser }) => {
 
   return (
     <div className="space-y-6">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">E-Library</h1>
         <button

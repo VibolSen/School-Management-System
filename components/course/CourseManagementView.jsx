@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import CourseTable from "./CourseTable";
 import AddCourseModal from "./AddCourseModal";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
+import Notification from "@/components/Notification";
 
 export default function CourseManagementView() {
   const [courseList, setCourseList] = useState([]);
@@ -14,13 +15,22 @@ export default function CourseManagementView() {
   const [editingCourse, setEditingCourse] = useState(null);
   const [courseToDelete, setCourseToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   const fetchData = useCallback(async () => {
-    // ... data fetching logic is correct and remains the same
     try {
       setLoading(true);
-      setError("");
       const [coursesRes, teachersRes, departmentsRes, groupsRes] =
         await Promise.all([
           fetch("/api/courses"),
@@ -40,7 +50,7 @@ export default function CourseManagementView() {
       setAllGroups(await groupsRes.json());
     } catch (err) {
       console.error("Failed to fetch data:", err);
-      setError(err.message);
+      showMessage(err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -49,8 +59,6 @@ export default function CourseManagementView() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  // ✅ The incorrect handleToggleStatus function has been removed.
 
   const handleAddClick = () => {
     setEditingCourse(null);
@@ -80,8 +88,9 @@ export default function CourseManagementView() {
       if (!res.ok) throw new Error("Failed to delete course");
       fetchData();
       setCourseToDelete(null);
+      showMessage("Course deleted successfully!");
     } catch (err) {
-      setError(err.message);
+      showMessage(err.message, "error");
     }
   };
 
@@ -108,9 +117,10 @@ export default function CourseManagementView() {
       }
       fetchData();
       handleCloseModal();
+      showMessage(`Course ${editingCourse ? "updated" : "added"} successfully!`);
     } catch (err) {
       console.error("Failed to save course:", err);
-      setError(err.message);
+      showMessage(err.message, "error");
     }
   };
 
@@ -120,11 +130,13 @@ export default function CourseManagementView() {
 
   return (
     <div className="space-y-6">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       <h1 className="text-3xl font-bold text-slate-800">Course Management</h1>
-
-      {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded">{error}</div>
-      )}
 
       <CourseTable
         courses={courseList}
@@ -135,7 +147,6 @@ export default function CourseManagementView() {
         departments={departments}
         teachers={teachers}
         allGroups={allGroups}
-        // ✅ The onToggleStatus prop is no longer passed
       />
 
       <AddCourseModal

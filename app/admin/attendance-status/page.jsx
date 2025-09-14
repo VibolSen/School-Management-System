@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ConfirmationDialog from "@/components/ConfirmationDialog";
+import Notification from "@/components/Notification";
 
 const API_ROUTE = '/api/attendance-status';
 
@@ -11,8 +12,19 @@ const AttendanceStatusManager = () => {
   const [editingStatusId, setEditingStatusId] = useState(null);
   const [editingStatusName, setEditingStatusName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  const showMessage = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   // Fetch all statuses
   const fetchStatuses = async () => {
@@ -23,7 +35,7 @@ const AttendanceStatusManager = () => {
       setStatuses(data);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch statuses.');
+      showMessage('Failed to fetch statuses.', "error");
     }
     setLoading(false);
   };
@@ -44,9 +56,10 @@ const AttendanceStatusManager = () => {
       if (!res.ok) throw new Error('Failed to add');
       setNewStatus('');
       fetchStatuses();
+      showMessage("Attendance status added successfully!");
     } catch (err) {
       console.error(err);
-      setError('Failed to add status.');
+      showMessage('Failed to add status.', "error");
     }
   };
 
@@ -69,9 +82,10 @@ const AttendanceStatusManager = () => {
       setEditingStatusId(null);
       setEditingStatusName('');
       fetchStatuses();
+      showMessage("Attendance status updated successfully!");
     } catch (err) {
       console.error(err);
-      setError('Failed to update status.');
+      showMessage('Failed to update status.', "error");
     }
   };
 
@@ -87,9 +101,10 @@ const AttendanceStatusManager = () => {
       if (!res.ok) throw new Error('Failed to delete');
       fetchStatuses();
       setItemToDelete(null);
+      showMessage("Attendance status deleted successfully!");
     } catch (err) {
       console.error(err);
-      setError('Failed to delete status.');
+      showMessage('Failed to delete status.', "error");
     }
   };
 
@@ -99,9 +114,13 @@ const AttendanceStatusManager = () => {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
       <h1 className="text-2xl font-bold text-slate-800">Attendance Status Management</h1>
-
-      {error && <div className="text-red-600">{error}</div>}
 
       {/* Add new status */}
       <div className="flex gap-2">
