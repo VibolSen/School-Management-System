@@ -20,8 +20,9 @@ import {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
-const HRDashboard = ({ loggedInUser }) => {
+const HRDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -40,12 +41,27 @@ const HRDashboard = ({ loggedInUser }) => {
         } else {
           setError("An unknown error occurred");
         }
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchHRDashboardData();
+    const fetchCurrentUser = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        if (!token) return;
+        const res = await fetch("/api/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to fetch current user");
+        const data = await res.json();
+        setCurrentUser(data.user);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    Promise.all([fetchHRDashboardData(), fetchCurrentUser()]).finally(() =>
+      setLoading(false)
+    );
   }, []);
 
   if (loading) {
@@ -61,11 +77,12 @@ const HRDashboard = ({ loggedInUser }) => {
   }
 
   const { totalStaff, activeStaff, onLeave, newHires, staffByDept, staffByStatus } = dashboardData;
+  const realUser = currentUser?.name || "User";
 
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-3xl font-bold text-slate-800">
-        Welcome back, {loggedInUser?.name}!
+        Welcome back, {realUser}!
       </h1>
       <p className="text-slate-500">
         Here's an overview of your staff management metrics.
