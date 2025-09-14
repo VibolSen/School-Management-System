@@ -140,16 +140,7 @@ export default function AdministratorDashboard() {
       u.status === "On Leave"
   ).length;
 
-  const attendanceData =
-    attendance && attendance.length > 0
-      ? attendance
-      : [
-          { name: "Mon", Present: 0, Absent: 0 },
-          { name: "Tue", Present: 0, Absent: 0 },
-          { name: "Wed", Present: 0, Absent: 0 },
-          { name: "Thu", Present: 0, Absent: 0 },
-          { name: "Fri", Present: 0, Absent: 0 },
-        ];
+  const attendanceData = attendance || [];
 
   const attendanceRate =
     attendanceData.length > 0
@@ -161,7 +152,7 @@ export default function AdministratorDashboard() {
             )) *
             100
         )
-      : "N/A";
+      : 0;
 
   const realUser = currentUser?.name || "User";
 
